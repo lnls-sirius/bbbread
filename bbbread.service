@@ -1,0 +1,17 @@
+[Unit]
+Description=BeagleBone Black - Redis Activity Display
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=3
+WorkingDirectory=/root/BBBread/
+ExecStart=/usr/bin/python-sirius /root/BBBread/BBBread_Client.py
+StandardOutput=syslog
+StandardError=syslog
+
+
+[Install]
+WantedBy=multi-user.target
