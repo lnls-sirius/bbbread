@@ -1,11 +1,10 @@
 """Alter REDIS_HOST to your host's IP
-For Corporate BBB configuration uncomment lines 339 - 346"""
+For Corporate BBB configuration comment lines 342 - 349"""
 
 import sys
 from time import sleep, localtime, strftime
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-sys.path.insert(0, PATH_TO_BBBREAD_MODULE)
 from BBBread import RedisServer
 
 qtCreatorFile = "ui_files/monitor.ui"
@@ -14,7 +13,10 @@ qtCreator_infofile = "ui_files/infoBBB.ui"
 
 BASIC_TAB = 0
 ADVANCED_TAB = 1
-REDIS_HOST = SERVER_IP
+# Corporate test server
+# REDIS_HOST = '10.0.6.64'
+# Sirius server
+REDIS_HOST = '10.128.255.3'
 
 room_names = {"All": "", "Corporate": "1", "TL": "21", "Connectivity": "22", "Power Supplies": "23", "RF": "24"}
 for i in range(20):
@@ -227,8 +229,8 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
             else:
                 selected_bbbs = self.advancedList.selectedItems()
             for bbb in selected_bbbs:
-                bbb_ip = bbb.text().split(" - ")[0]
-                self.server.reboot_node(bbb_ip)
+                bbb_ip, hostname = bbb.text().split(" - ")
+                self.server.reboot_node(bbb_ip, hostname)
 
     def delete_nodes(self):
         """Deletes hashs from Redis Database"""
@@ -344,12 +346,12 @@ class BBBConfig(QtWidgets.QWidget, Ui_MainWindow_config):
             self.keepipBox.setEnabled(False)
             self.keepnameserversBox.setChecked(True)
             self.keepnameserversBox.setEnabled(False)
-            self.ip_str = ".".join(ip[:-1]) + "."
+            self.ip_prefix = ".".join(ip[:-1]) + "."
             pass
 
         else:
-            self.ip_str = "10.128.1{}.".format(info[b'sector'].decode())
-        self.newipLabel.setText(self.ip_str)
+            self.ip_prefix = "10.128.1{}.".format(info[b'sector'].decode())
+        self.newipLabel.setText(self.ip_prefix)
         self.ipComboBox.currentIndexChanged.connect(self.disable_spinbox)
 
         self.applyButton.clicked.connect(self.apply_changes)
@@ -388,6 +390,7 @@ class BBBConfig(QtWidgets.QWidget, Ui_MainWindow_config):
                 self.hostname = new_hostname
                 hostname_changed = True
             if not keep_ip:
+                retry = 0
                 if ip_type == "DHCP":
                     if hostname_changed:
                         for retry in range(11):
@@ -404,10 +407,11 @@ class BBBConfig(QtWidgets.QWidget, Ui_MainWindow_config):
                         for retry in range(11):
                             if self.server.list_connected(self.ip_address, self.hostname):
                                 break
-                            sleep(0.5)
+                            sleep(1)
                     if retry < 10:
-                        new_ip = self.ip_str + new_ip_suffix
-                        self.server.change_ip(self.ip_address, 'manual', self.hostname, new_ip, "255.255.255.0")
+                        new_ip = self.ip_prefix + new_ip_suffix
+                        self.server.change_ip(self.ip_address, 'manual', self.hostname, new_ip, "255.255.255.0",
+                                              self.ip_prefix + "1")
                     else:
                         QtWidgets.QMessageBox.warning(self, 'Warning', "Failed to change nodes IP",
                                                       QtWidgets.QMessageBox.Abort)
