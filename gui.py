@@ -104,7 +104,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
                 node_details = info[b'details'].decode()
                 node_string = "{} - {}".format(node_ip, node_name)
             except Exception as e:
-                # print(e)
+                print(e)
                 continue
             # Increments Connected Number of BBBs if beagle is connected
             if node_state == "Connected":
@@ -155,6 +155,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
 
                         # Moved nodes have yellow background
                         elif node_state[:3] == 'BBB':
+                            # print(node_name)
                             if state_filter['Moved']:
                                 # Verifies if the node is already on the list
                                 qlistitem = list_name.findItems(node_string, QtCore.Qt.MatchExactly)
@@ -179,7 +180,6 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
 
             else:
                 self.remove_faulty(node_string, list_name)
-
         self.Lock = False
         # Updates the number of connected and listed nodes
         self.connectedLabel.setText("Connected nodes: {}".format(connected_number))
@@ -243,14 +243,23 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
             else:
                 current_list = self.advancedList
             selected_bbbs = current_list.selectedItems()
+            errors = []
             for bbb in selected_bbbs:
-                bbb_ip, bbb_hostname = bbb.text().split(" - ")
-                bbb_hashname = "BBB:{}:{}".format(bbb_ip, bbb_hostname)
-                self.server.delete_bbb(bbb_hashname)
-                self.remove_faulty(bbb.text(), current_list)
-                while self.Lock:
-                    sleep(0.1)
-                self.nodes_info.pop(bbb_hashname)
+                try:
+                    bbb_ip, bbb_hostname = bbb.text().split(" - ")
+                    bbb_hashname = "BBB:{}:{}".format(bbb_ip, bbb_hostname)
+                    self.server.delete_bbb(bbb_hashname)
+                    self.remove_faulty(bbb.text(), current_list)
+                    while self.Lock:
+                        sleep(0.1)
+                    self.nodes_info.pop(bbb_hashname)
+                except KeyError:
+                    errors.append(bbb_hashname)
+                    continue
+            if errors:
+                QtWidgets.QMessageBox.warning(self, 'Warning',
+                                              "The following nodes weren't found in the Redis Database:\n{}"
+                                              .format("\n".join(errors)), QtWidgets.QMessageBox.Abort)
 
     def show_node_info(self):
         """Shows selected BBB's information"""
@@ -261,9 +270,13 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
         bbb = current_list.selectedItems()[0].text()
         bbb_ip, bbb_hostname = bbb.split(" - ")
         hashname = "BBB:{}:{}".format(bbb_ip, bbb_hostname)
-        info = self.nodes_info[hashname]
-        self.window = BBBInfo(info)
-        self.window.show()
+        try:
+            info = self.nodes_info[hashname]
+            self.window = BBBInfo(info)
+            self.window.show()
+        except KeyError:
+            QtWidgets.QMessageBox.warning(self, "Warning", "The node you are trying to get information isn't connected",
+                                          QtWidgets.QMessageBox.Abort)
 
     def config_node(self):
         """Opens configuration the selected BBB's configuration window"""
@@ -386,7 +399,7 @@ class BBBConfig(QtWidgets.QWidget, Ui_MainWindow_config):
                 self.server.change_nameservers(self.ip_address, nameserver_1, nameserver_2, self.hostname)
             # Hostname configuration
             if not keep_hostname and new_hostname:
-                self.server.change_hostname(self.ip_address, new_hostname)
+                self.server.change_hostname(self.ip_address, new_hostname, self.hostname)
                 self.hostname = new_hostname
                 hostname_changed = True
             if not keep_ip:
