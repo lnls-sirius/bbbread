@@ -7,7 +7,8 @@ import logging
 import os
 import sys
 
-if len(sys.argv) == 1:
+# Verifies if device is a BBB
+if "bone" in subprocess.check_output(['uname', '-a']).decode():
     sys.path.insert(0, '/root/bbb-function/src/scripts')
     from bbb import BBB
 
@@ -112,11 +113,14 @@ class RedisServer:
             self.logger.error("Failed to return nodes info due to error:\n{}".format(e))
             return False
 
-    def send_command(self, ip: str, command, hostname=''):
+    def send_command(self, ip: str, command, hostname='', override=False):
         """Sends a command to a BeagleBone Black
         Returns False if it fails to send command"""
         try:
             bbb_hashname = self.list_connected(ip, hostname)
+
+            if override and hostname:
+                bbb_hashname = ['BBB:{}:{}'.format(ip, hostname)]
             if len(bbb_hashname) == 1:
                 bbb_state = self.local_db.hget(bbb_hashname[0], 'state_string').decode()
                 if bbb_state != 'Connected':
@@ -191,27 +195,28 @@ class RedisServer:
         """Removes a hash from redis database"""
         self.local_db.delete(hashname)
 
-    def change_hostname(self, ip: str, new_hostname: str, current_hostname=""):
+    def change_hostname(self, ip: str, new_hostname: str, current_hostname="", override=False):
         """Changes a BeagleBone Black hostname
         Returns false if an error occurs while sending the command or BBB isn't connected to Redis"""
         command = "{};{}".format(Command.SET_HOSTNAME, new_hostname)
-        check = self.send_command(ip, command, current_hostname)
+        check = self.send_command(ip, command, current_hostname, override)
         # If command is sent successfully logs hostname change
         if check:
             self.logger.info("{} NEW HOSTNAME - {}".format(ip, new_hostname))
         return check
 
-    def change_nameservers(self, ip: str, nameserver_1: str, nameserver_2: str, hostname=""):
+    def change_nameservers(self, ip: str, nameserver_1: str, nameserver_2: str, hostname="", override=False):
         """Changes a BeagleBone Black nameservers
         Returns false if an error occurs while sending the command or BBB isn't connected to Redis"""
         command = "{};{};{}".format(Command.SET_NAMESERVERS, nameserver_1, nameserver_2)
-        check = self.send_command(ip, command, hostname)
+        check = self.send_command(ip, command, hostname, override)
         # If command is sent successfully logs hostname change
         if check:
             self.logger.debug("{} NEW NAMESERVERS - {}  {}".format(ip, nameserver_1, nameserver_2))
         return check
 
-    def change_ip(self, current_ip: str, ip_type: str, hostname="", new_ip="", new_mask="", new_gateway=""):
+    def change_ip(self, current_ip: str, ip_type: str, hostname="",
+                  new_ip="", new_mask="", new_gateway="", override=False):
         """Changes a BeagleBone Black IP address (DHCP or manual)
         Returns false if an error occurs while sending the command or BBB isn't connected to Redis"""
         command = "{};{}".format(Command.SET_IP, ip_type)
@@ -228,16 +233,16 @@ class RedisServer:
             else:
                 self.logger.warning("{} IP NOT AVAILABLE")
                 return False
-        check = self.send_command(current_ip, command, hostname)
+        check = self.send_command(current_ip, command, hostname, override)
         if check:
             self.logger.info("{} NEW IP - type:{} - new ip: {} - mask: {} - gateway: {}"
                              .format(current_ip, ip_type, new_ip, new_mask, new_gateway))
         return check
 
-    def reboot_node(self, ip: str, hostname=""):
+    def reboot_node(self, ip: str, hostname="", override=False):
         """Reboots the specified BeagleBone Black
         Returns false if an error occurs while sending the command or BBB isn't connected to Redis"""
-        check = self.send_command(ip, Command.REBOOT, hostname)
+        check = self.send_command(ip, Command.REBOOT, hostname, override)
         if check:
             self.logger.info("{} REBOOT".format(ip))
         return check
@@ -332,6 +337,7 @@ class RedisClient:
                         # if self.remote_db.keys(self.command_listname):
                         #     self.remote_db.rename(self.command_listname, self.hashname + ":Command")
                         self.logger.info("Hostname changed to " + new_hostname)
+                        self.listening = False
 
                     elif command[0] == Command.SET_IP:
                         ip_type = command[1]
@@ -353,6 +359,7 @@ class RedisClient:
                             self.logger.info("IP manually changed to {}, netmask {}, gateway {}".format(new_ip,
                                                                                                         new_mask,
                                                                                                         new_gateway))
+                            self.listening = False
 
                         # Verifies if IP is DHCP
                         elif ip_type == 'dhcp':
@@ -365,6 +372,7 @@ class RedisClient:
                             # if self.remote_db.keys(self.command_listname):
                             #     self.remote_db.rename(self.command_listname, self.hashname + ":Command")
                             self.logger.info("IP changed to DHCP")
+                            self.listening = False
 
                     elif command[0] == Command.SET_NAMESERVERS and len(command) == 3:
                         nameserver_1 = command[1]
@@ -398,6 +406,7 @@ class RedisClient:
             self.logger.info("old ip: {}, new ip: {}, old hostname: {}, new hostname: {}"
                              .format(self.bbb_ip, new_ip, self.bbb_hostname, new_hostname))
             self.remote_db.hmset(old_hashname, old_info)
+            self.listening = True
         # Updates remote hash
         if log:
             self.logger.info("updating remote db")
