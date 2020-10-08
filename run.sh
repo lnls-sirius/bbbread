@@ -1,9 +1,10 @@
 #!/bin/bash
-
+set +x
 export BREAD_BASE=/root/bbbread
-export RSYNC_SERVER="10.128.255.5"
 
-echo Synchronizing bbb-function files
-rsync -a --delete-after RSYNC_SERVER::bbbread BREAD_BASE
+echo Synchronizing bbbread files
+rsync -a --delete-after 10.128.255.5::bbbread BREAD_BASE
 
-python-sirius ${BREAD_BASE}/BBBread_Client.py &
+
+echo Run script
+python-sirius ${BREAD_BASE}/BBBread_Client.py

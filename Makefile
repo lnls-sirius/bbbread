@@ -17,8 +17,8 @@ install:
 
 	systemctl daemon-reload
 
+	systemctl start ${BREAD_SERVICE_NAME}
 	systemctl enable ${BREAD_SERVICE_NAME}
-	systemctl restart ${BREAD_SERVICE_NAME}
 
 uninstall:
 	systemctl stop ${BREAD_SERVICE_NAME}
@@ -32,5 +32,4 @@ clean:
 	find . -name '*.pyo' -exec rm --force {} +
 	find . -name '*~'    -exec rm --force {} +
 	find . -name '__pycache__'  -exec rm -rd --force {} +
-
 
