@@ -7,8 +7,8 @@ After=network-online.target
 Type=simple
 Restart=always
 RestartSec=3
-WorkingDirectory=/root/BBBread/
-ExecStart=/bin/bash /root/BBBread/run.sh
+WorkingDirectory=/root/bbbread/
+ExecStart=/bin/bash /root/bbbread/run.sh
 StandardOutput=syslog
 StandardError=syslog
 
