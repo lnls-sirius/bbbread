@@ -12,6 +12,21 @@ Requirements:
 
 Installation:
 
+After installing [bbb-function](https://github.com/lnls-sirius/bbb-function) clone this repository in /root directory and use the following command to install:
+
+```bash
+make install
+```
+
+Or the following to uninstall:
+```bash
+make uninstall
+```
+
+
+
+### Manual Installation
+
 * Install [bbb-function](https://github.com/lnls-sirius/bbb-function)
 
 * Clone this repository in BBB's /root directory
