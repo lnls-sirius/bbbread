@@ -7,8 +7,10 @@ import logging
 import os
 import sys
 
+device = 'server'
 # Verifies if device is a BBB
 if "bone" in subprocess.check_output(['uname', '-a']).decode():
+    device = 'bbb'
     sys.path.insert(0, '/root/bbb-function/src/scripts')
     from bbb import BBB
 
@@ -25,7 +27,7 @@ def update_local_db():
     info = node.get_current_config()['n']
 
     info['ping_time'] = str(time.time())
-    services = subprocess.check_output(['connmanctl', 'services']).decode().split('\n')
+    # services = subprocess.check_output(['connmanctl', 'services']).decode().split('\n')
 
     """
     ip_specs is a string similar to:
@@ -35,27 +37,27 @@ def update_local_db():
     Nameservers.Configuration ...'
     """
 
-    for service in services:
-        if '*AO Wired' in service or '*AR Wired' in service:
-            service = service.split(16*' ')[1]
-            ip_specs = subprocess.check_output(['connmanctl', 'services', service]).decode()
-            # Determines IP type
-            if 'IPv4.Configuration = [ Method=dhcp' in ip_specs:
-                info['ip_type'] = 'DHCP'
-            else:
-                info['ip_type'] = 'StaticIP'
-            info['nameservers'] = ip_specs.split('Nameservers')[1][5:-5]
-            # Determines IP
-            ip_string = ip_specs.split('IPv4')[1].split(',')[1][9:]
-            if "10.128.1" in ip_string:
-                info['sector'] = ip_string.split('.')[2][1:]
-            else:
-                info['sector'] = '1'
-            break
-        else:
-            info['ip_type'] = 'Undefined'
-            info['nameservers'] = 'Undefined'
-            info['sector'] = '1'
+    # for service in services:
+    #     if '*AO Wired' in service or '*AR Wired' in service:
+    #         service = service.split(16*' ')[1]
+    #         ip_specs = subprocess.check_output(['connmanctl', 'services', service]).decode()
+    #         # Determines IP type
+    #         if 'IPv4.Configuration = [ Method=dhcp' in ip_specs:
+    #             info['ip_type'] = 'DHCP'
+    #         else:
+    #             info['ip_type'] = 'StaticIP'
+    #         info['nameservers'] = ip_specs.split('Nameservers')[1][5:-5]
+    #         # Determines IP
+    #         ip_string = ip_specs.split('IPv4')[1].split(',')[1][9:]
+    #         if "10.128.1" in ip_string:
+    #             info['sector'] = ip_string.split('.')[2][1:]
+    #         else:
+    #             info['sector'] = '1'
+    #         break
+    #     else:
+    #         info['ip_type'] = 'Undefined'
+    #         info['nameservers'] = 'Undefined'
+    #         info['sector'] = '1'
 
     local_db.hmset('device', info)
     return info['ip_address'], info['name']
@@ -64,7 +66,7 @@ def update_local_db():
 class Command:
     PING, REBOOT, EXIT, END, TYPE, APPEND_TYPE, REMOVE_TYPE, NODE, APPEND_NODE, REMOVE_NODE, SWITCH, \
         GET_TYPES, GET_UNREG_NODES_SECTOR, GET_REG_NODES_SECTOR, GET_REG_NODE_BY_IP, OK, \
-        FAILURE, SET_IP, SET_HOSTNAME, SET_NAMESERVERS = range(20)
+        FAILURE, SET_IP, SET_HOSTNAME, SET_NAMESERVERS, RESTART_SERVICE, STOP_SERVICE = range(22)
 
 
 class RedisServer:
@@ -247,6 +249,22 @@ class RedisServer:
             self.logger.info("{} REBOOT".format(ip))
         return check
 
+    def stop_service(self, ip: str, service: str, hostname="", override=False):
+        """Stops the specified service on the given BBB"""
+        command = "{};{}".format(Command.STOP_SERVICE, service)
+        check = self.send_command(ip, command, hostname, override)
+        if check:
+            self.logger.info("{} SERVICE STOPPED - {}".format(ip, service))
+        return check
+
+    def restart_service(self, ip: str, service: str, hostname="", override=False):
+        """Restarts the specified service on the given BBB"""
+        command = "{};{}".format(Command.RESTART_SERVICE, service)
+        check = self.send_command(ip, command, hostname, override)
+        if check:
+            self.logger.info("{} SERVICE RESTARTED - {}".format(ip, service))
+        return check
+
 
 # TODO: Implement commutable server IP
 class RedisClient:
@@ -325,7 +343,6 @@ class RedisClient:
                         self.logger.info("Reboot command received")
                         self.bbb.reboot()
 
-                    # TODO: Needs to lock update_local_db in order to prevent state_string to be quoted wrong
                     elif command[0] == Command.SET_HOSTNAME and len(command) == 2:
                         new_hostname = command[1]
                         # bbb_ip = self.local_db.hget('device', 'ip_address').decode()
@@ -379,6 +396,17 @@ class RedisClient:
                         nameserver_2 = command[2]
                         self.bbb.update_nameservers(nameserver_1, nameserver_2)
                         self.logger.info("Nameservers changed")
+
+                    elif command[0] == Command.STOP_SERVICE and len(command) == 2:
+                        service_name = command[1]
+                        subprocess.check_output(['systemctl', 'stop', service_name])
+                        self.logger.info("{} service stopped".format(service_name))
+
+                    elif command[0] == Command.RESTART_SERVICE and len(command) == 2:
+                        service_name = command[1]
+                        subprocess.check_output(['systemctl', 'restart', service_name])
+                        self.logger.info("{} service restarted".format(service_name))
+
             except Exception as e:
                 self.logger.error("Listening Thread died:\n{}".format(e))
                 time.sleep(1)
@@ -415,7 +443,9 @@ class RedisClient:
 
 
 if __name__ == '__main__':
-    server = RedisServer()
-    client = RedisClient()
+    if device == 'server':
+        server = RedisServer()
+    else:
+        client = RedisClient()
     sys.exit()
 
