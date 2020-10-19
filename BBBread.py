@@ -345,14 +345,9 @@ class RedisClient:
 
                     elif command[0] == Command.SET_HOSTNAME and len(command) == 2:
                         new_hostname = command[1]
-                        # bbb_ip = self.local_db.hget('device', 'ip_address').decode()
-                        # self.remote_db.hset(self.hashname, 'state_string', 'BBB:{}:{}'.format(bbb_ip, new_hostname))
                         self.bbb.update_hostname(new_hostname)
                         # Updates variable names
                         self.logger.info("renaming command")
-                        # self.remote_db = redis.StrictRedis(host=self.remote_host, port=6379, socket_timeout=2)
-                        # if self.remote_db.keys(self.command_listname):
-                        #     self.remote_db.rename(self.command_listname, self.hashname + ":Command")
                         self.logger.info("Hostname changed to " + new_hostname)
                         self.listening = False
 
@@ -363,16 +358,10 @@ class RedisClient:
                             new_ip = command[2]
                             new_mask = command[3]
                             new_gateway = command[4]
-                            # bbb_hostname = self.local_db.hget('device', 'name').decode()
-                            # self.remote_db.hset(self.hashname, 'state_string', 'BBB:{}:{}'.format(new_ip,
-                            #                                                                          bbb_hostname))
                             self.bbb.update_ip_address(ip_type, new_ip, new_mask, new_gateway)
                             # Updates variable names
                             self.logger.info("UPDATING")
                             self.logger.info("renaming command")
-                            # self.remote_db = redis.StrictRedis(host=self.remote_host, port=6379, socket_timeout=2)
-                            # if self.remote_db.keys(self.command_listname):
-                            #     self.remote_db.rename(self.command_listname, self.hashname + ":Command")
                             self.logger.info("IP manually changed to {}, netmask {}, gateway {}".format(new_ip,
                                                                                                         new_mask,
                                                                                                         new_gateway))
@@ -380,14 +369,10 @@ class RedisClient:
 
                         # Verifies if IP is DHCP
                         elif ip_type == 'dhcp':
-                            # self.remote_db.hset(self.hashname, 'state_string', 'BBB:IP-moved-to-DHCP')
                             self.bbb.update_ip_address(ip_type)
                             # Updates variable names
                             time.sleep(1)
                             self.logger.info("renaming command")
-                            # self.remote_db = redis.StrictRedis(host=self.remote_host, port=6379, socket_timeout=2)
-                            # if self.remote_db.keys(self.command_listname):
-                            #     self.remote_db.rename(self.command_listname, self.hashname + ":Command")
                             self.logger.info("IP changed to DHCP")
                             self.listening = False
 
