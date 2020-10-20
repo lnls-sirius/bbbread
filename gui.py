@@ -44,8 +44,10 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
         self.basicList.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.advancedList.setSortingEnabled(True)
         self.advancedList.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.serviceList.setSortingEnabled(True)
+        self.serviceList.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
-        # List Update
+        # List Update Timer
         self.autoUpdate_timer = QtCore.QTimer(self)
         self.autoUpdate_timer.timeout.connect(self.update_nodes)
         self.autoUpdate_timer.setSingleShot(False)
@@ -333,10 +335,10 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
             selected_bbbs = self.serviceList.selectedItems()
             for bbb in selected_bbbs:
                 bbb_ip, bbb_hostname = bbb.text().split(" - ")
-                if self.bbbfunctionBox.isChecked():
-                    operation(bbb_ip, 'bbb-function', bbb_hostname)
                 if self.bbbreadBox.isChecked():
                     operation(bbb_ip, 'bbbread', bbb_hostname)
+                if self.bbbfunctionBox.isChecked():
+                    operation(bbb_ip, 'bbb-function', bbb_hostname)
 
 
 class BBBInfo(QtWidgets.QWidget, Ui_MainWindow_info):
