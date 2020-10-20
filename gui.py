@@ -53,12 +53,14 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
 
         # Buttons
         self.basicList.itemSelectionChanged.connect(self.enable_buttons)
-        self.tabWidget.currentChanged.connect(self.enable_buttons)
         self.advancedList.itemSelectionChanged.connect(self.enable_buttons)
+        self.serviceList.itemSelectionChanged.connect(self.enable_buttons)
+        self.tabWidget.currentChanged.connect(self.enable_buttons)
         self.deleteButton.clicked.connect(self.delete_nodes)
         self.rebootButton.clicked.connect(self.reboot_nodes)
         self.configButton.clicked.connect(self.config_node)
         self.infoButton.clicked.connect(self.show_node_info)
+        self.applyserviceButton.clicked.connect(self.service_application)
 
     def update_nodes(self):
         """Updates list of BBBs shown"""
@@ -80,6 +82,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
                             'Moved': self.movedCheckBox.isChecked()}
             list_name = self.basicList
         else:
+            state_filter = {'Connected': True, 'Disconnected': False, 'Moved': False}
             list_name = self.serviceList
 
         # Advanced Tab filters
@@ -125,7 +128,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
 
                         # Filters by node state
                         if node_state == 'Connected':
-                            if state_filter[node_state] or current_tab == SERVICE_TAB:
+                            if state_filter[node_state]:
                                 # Verifies if the node is already on the list
                                 qlistitem = list_name.findItems(node_string, QtCore.Qt.MatchExactly)
                                 if not qlistitem:
@@ -141,7 +144,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
 
                         # Disconnected nodes have red background
                         elif node_state == 'Disconnected':
-                            if state_filter[node_state] and current_tab != SERVICE_TAB:
+                            if state_filter[node_state]:
                                 # Verifies if the node is already on the list
                                 qlistitem = list_name.findItems(node_string, QtCore.Qt.MatchExactly)
                                 if not qlistitem:
@@ -159,7 +162,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
                         # Moved nodes have yellow background
                         elif node_state[:3] == 'BBB':
                             # print(node_name)
-                            if state_filter['Moved'] and current_tab != SERVICE_TAB:
+                            if state_filter['Moved']:
                                 # Verifies if the node is already on the list
                                 qlistitem = list_name.findItems(node_string, QtCore.Qt.MatchExactly)
                                 if not qlistitem:
@@ -188,7 +191,8 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
         self.connectedLabel.setText("Connected nodes: {}".format(connected_number))
         self.listedLabel.setText("Listed: {}".format(list_name.count()))
 
-    def remove_faulty(self, node_string, list_name, all_elements=True):
+    @staticmethod
+    def remove_faulty(node_string, list_name: QtWidgets.QListWidget, all_elements=True):
         """Removes duplicates and nodes that shouldn't be on the list"""
         qlistitem = list_name.findItems(node_string, QtCore.Qt.MatchExactly)
         if qlistitem:
@@ -217,11 +221,16 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
             else:
                 self.configButton.setEnabled(False)
                 self.infoButton.setEnabled(False)
+            if current_tab == SERVICE_TAB:
+                self.applyserviceButton.setEnabled(True)
+            else:
+                self.applyserviceButton.setEnabled(False)
         else:
             self.rebootButton.setEnabled(False)
             self.deleteButton.setEnabled(False)
             self.configButton.setEnabled(False)
             self.infoButton.setEnabled(False)
+            self.applyserviceButton.setEnabled(False)
 
     def reboot_nodes(self):
         """Reboots the selected nodes"""
@@ -255,9 +264,9 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
                 selected_bbbs = self.serviceList.selectedItems()
             errors = []
             for bbb in selected_bbbs:
+                bbb_ip, bbb_hostname = bbb.text().split(" - ")
+                bbb_hashname = "BBB:{}:{}".format(bbb_ip, bbb_hostname)
                 try:
-                    bbb_ip, bbb_hostname = bbb.text().split(" - ")
-                    bbb_hashname = "BBB:{}:{}".format(bbb_ip, bbb_hostname)
                     self.server.delete_bbb(bbb_hashname)
                     self.remove_faulty(bbb.text(), current_list)
                     while self.Lock:
@@ -297,7 +306,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
             bbb = self.basicList.selectedItems()[0].text()
         elif current_list == ADVANCED_TAB:
             bbb = self.advancedList.selectedItems()[0].text()
-        elif current_list == SERVICE_TAB:
+        else:
             bbb = self.serviceList.selectedItems()[0].text()
         bbb_ip, bbb_hostname = bbb.split(" - ")
         hashname = "BBB:{}:{}".format(bbb_ip, bbb_hostname)
@@ -306,11 +315,28 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
             self.window = BBBConfig(hashname, info, self.server)
             self.window.show()
         else:
-            warning = QtWidgets.QMessageBox.warning(self, 'Warning',
-                                                          "The node you are trying to configure isn't connected",
-                                                          QtWidgets.QMessageBox.Abort)
-            if warning == QtWidgets.QMessageBox.Abort:
-                pass
+            QtWidgets.QMessageBox.warning(self, 'Warning',
+                                          "The node you are trying to configure isn't connected",
+                                          QtWidgets.QMessageBox.Abort)
+
+    def service_application(self):
+        """Applies services modification"""
+        confirmation = QtWidgets.QMessageBox.question(self, 'Confirmation',
+                                                      "Are you sure about deleting these nodes from Redis Database?",
+                                                      QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        if confirmation == QtWidgets.QMessageBox.Yes:
+            selected_operation = self.operationcomboBox.currentText()
+            if selected_operation == "Restart":
+                operation = self.server.restart_service
+            else:
+                operation = self.server.stop_service
+            selected_bbbs = self.serviceList.selectedItems()
+            for bbb in selected_bbbs:
+                bbb_ip, bbb_hostname = bbb.text().split(" - ")
+                if self.bbbfunctionBox.isChecked():
+                    operation(bbb_ip, 'bbb-function', bbb_hostname)
+                if self.bbbreadBox.isChecked():
+                    operation(bbb_ip, 'bbbread', bbb_hostname)
 
 
 class BBBInfo(QtWidgets.QWidget, Ui_MainWindow_info):
