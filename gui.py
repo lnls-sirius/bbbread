@@ -18,9 +18,11 @@ SERVICE_TAB = 2
 # Sirius server
 REDIS_HOST = '10.128.255.3'
 
-room_names = {"All": "", "Corporate": "1", "TL": "21", "Connectivity": "22", "Power Supplies": "23", "RF": "24"}
+room_names = {"All": "", "Others": "Outros", "TL": "LTs", "Connectivity": "Conectividade",
+              "Power Supplies": "Fontes", "RF": "RF"}
+# "LTs", "Conectividade", "Fontes", "RF", "Outros"
 for i in range(20):
-    room_names["IA-{:02d}".format(i + 1)] = "{:02d}".format(i+1)
+    room_names["IA-{:02d}".format(i + 1)] = "Sala{:02d}".format(i+1)
 
 Ui_MainWindow, QtBaseClass = uic.loadUiType(qtCreatorFile)
 Ui_MainWindow_config, QtBaseClass_config = uic.loadUiType(qtCreator_configfile)
@@ -88,7 +90,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
             list_name = self.serviceList
 
         # Advanced Tab filters
-        ip_filter = {'StaticIP': self.staticipAdvancedBox.isChecked(), 'DHCP': self.dhcpAdvancedBox.isChecked(),
+        ip_filter = {'manual': self.staticipAdvancedBox.isChecked(), 'dhcp': self.dhcpAdvancedBox.isChecked(),
                      'Undefined': self.undeterminedAdvancedBox.isChecked()}
         equipment_filter = {'MKS': self.mksAdvancedBox.isChecked(), '4UHV': self.uhvAdvancedBox.isChecked(),
                             'MBTEMP': self.mbtempAdvancedBox.isChecked(), 'THERMO': self.thermoAdvancedBox.isChecked(),
@@ -324,7 +326,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
     def service_application(self):
         """Applies services modification"""
         confirmation = QtWidgets.QMessageBox.question(self, 'Confirmation',
-                                                      "Are you sure about deleting these nodes from Redis Database?",
+                                                      "Are you sure applying these changes?",
                                                       QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
         if confirmation == QtWidgets.QMessageBox.Yes:
             selected_operation = self.operationcomboBox.currentText()
@@ -352,7 +354,7 @@ class BBBInfo(QtWidgets.QWidget, Ui_MainWindow_info):
             node_ip = info[b'ip_address'].decode()
             node_ip_type = info[b'ip_type'].decode()
             node_name = info[b'name'].decode()
-            node_sector = info[b'sector'].decode()
+            node_sector = room_names[[b'sector'].decode()]
             ping_time = float(info[b'ping_time'].decode())
             for room, number in room_names.items():
                 if number == node_sector:
@@ -392,7 +394,9 @@ class BBBConfig(QtWidgets.QWidget, Ui_MainWindow_config):
         self.currenthostnamevalueLabel.setText(self.hostname)
         self.currentipvalueLabel.setText(self.ip_address)
 
-        if self.bbb_sector == room_names['Corporate']:
+        self.ip_prefix = ".".join(ip[:-1]) + "."
+
+        if ip[1] != '128':
             self.ipComboBox.setEnabled(False)
             self.newipSpinBox.setEnabled(False)
             self.nameserver1Edit.setEnabled(False)
@@ -401,11 +405,7 @@ class BBBConfig(QtWidgets.QWidget, Ui_MainWindow_config):
             self.keepipBox.setEnabled(False)
             self.keepnameserversBox.setChecked(True)
             self.keepnameserversBox.setEnabled(False)
-            self.ip_prefix = ".".join(ip[:-1]) + "."
-            pass
 
-        else:
-            self.ip_prefix = "10.128.1{}.".format(info[b'sector'].decode())
         self.newipLabel.setText(self.ip_prefix)
         self.ipComboBox.currentIndexChanged.connect(self.disable_spinbox)
 
@@ -436,13 +436,10 @@ class BBBConfig(QtWidgets.QWidget, Ui_MainWindow_config):
         new_ip_suffix = str(self.newipSpinBox.value())
 
         # Bools to verify if command was sent successfully
-        dns_sent = False
-        name_sent = False
         ip_sent = False
 
         # Confirmation screen
-        confirmation = QtWidgets.QMessageBox.question(self, 'Confirmation',
-                                                      "Apply changes?",
+        confirmation = QtWidgets.QMessageBox.question(self, 'Confirmation', "Apply changes?",
                                                       QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
         if confirmation == QtWidgets.QMessageBox.Yes:
             # Nameservers configuration
