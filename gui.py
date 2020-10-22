@@ -354,7 +354,7 @@ class BBBInfo(QtWidgets.QWidget, Ui_MainWindow_info):
             node_ip = info[b'ip_address'].decode()
             node_ip_type = info[b'ip_type'].decode()
             node_name = info[b'name'].decode()
-            node_sector = room_names[[b'sector'].decode()]
+            node_sector = room_names[info[b'sector'].decode()]
             ping_time = float(info[b'ping_time'].decode())
             for room, number in room_names.items():
                 if number == node_sector:
