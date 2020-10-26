@@ -259,13 +259,14 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
                                                       "Are you sure about deleting these nodes from Redis Database?",
                                                       QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
         if confirmation == QtWidgets.QMessageBox.Yes:
-            current_list = self.tabWidget.currentIndex()
-            if current_list == BASIC_TAB:
-                selected_bbbs = self.basicList.selectedItems()
-            elif current_list == ADVANCED_TAB:
-                selected_bbbs = self.advancedList.selectedItems()
+            current_index = self.tabWidget.currentIndex()
+            if current_index == BASIC_TAB:
+                current_list = self.basicList
+            elif current_index == ADVANCED_TAB:
+                current_list = self.advancedList
             else:
-                selected_bbbs = self.serviceList.selectedItems()
+                current_list = self.serviceList
+            selected_bbbs = current_list.selectedItems()
             errors = []
             for bbb in selected_bbbs:
                 bbb_ip, bbb_hostname = bbb.text().split(" - ")
