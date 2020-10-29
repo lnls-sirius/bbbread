@@ -8,7 +8,7 @@ from BBBread import RedisClient, update_local_db
 
 
 update_local_db()
-teste = RedisClient()
+client = RedisClient()
 while True:
     time.sleep(10)
 

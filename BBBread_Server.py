@@ -7,8 +7,9 @@ CONNECTED = 0
 DISCONNECTED = 1
 MOVED = 2
 
-server = RedisServer()
-# TODO: find a way to verify if new dhcp hash exist
+server = RedisServer(host=True)
+local_db = server.local_db
+
 while True:
     try:
         sleep(1)
