@@ -19,7 +19,7 @@ else:
 SERVER_IP = '10.128.255.3'
 BACKUP_SERVER = '10.128.255.4'
 CONFIG_PATH = '/var/tmp/bbb.bin'
-LOG_PATH_SERVER = '/home/vitor.pereira/bbbread.log'
+LOG_PATH_SERVER = '/var/log/bbbread.log'
 LOG_PATH_BBB = '/var/log/bbbread.log'
 
 
@@ -46,7 +46,7 @@ class RedisServer:
     def __init__(self, log_path=LOG_PATH_SERVER):
         # Configuring logging
         self.logger = logging.getLogger("bbbreadServer")
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.CRITICAL)
         formatter = logging.Formatter('%(levelname)s:%(asctime)s:%(name)s:%(message)s')
         file_handler = logging.FileHandler(log_path)
         file_handler.setFormatter(formatter)
@@ -66,7 +66,7 @@ class RedisServer:
                 self.logger.debug("Connected to CA-RaCtrl-CO-Srv-1 Redis Server")
             # Case no BBBread server is found
             except redis.exceptions.ConnectionError:
-                self.logger.critical("No BBBread Server found")
+                self.logger.error("No BBBread Server found")
                 raise Exception("No BBBread Server found")
 
     # TODO: Change function name
@@ -123,7 +123,7 @@ class RedisServer:
                 self.logger.error("two or more nodes found with the specified ip, please specify a hostname")
             return False
         except Exception as e:
-            self.logger.critical("A fatal error occurred while sending the command:\n{}".format(e))
+            self.logger.error("A fatal error occurred while sending the command:\n{}".format(e))
             return False
 
     def bbb_state(self, hashname: str):
