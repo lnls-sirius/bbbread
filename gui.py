@@ -31,13 +31,13 @@ Ui_MainWindow_info, QtBaseClass_info = uic.loadUiType(qtCreator_infofile)
 
 class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
     """BeagleBone Black Redis Activity Display"""
-    def __init__(self, host=False):
+    def __init__(self):
         QtWidgets.QWidget.__init__(self)
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
 
         # Configures redis Server
-        self.server = RedisServer(host=host)
+        self.server = RedisServer()
 
         # Lists
         self.nodes = []
