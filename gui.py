@@ -31,13 +31,13 @@ Ui_MainWindow_info, QtBaseClass_info = uic.loadUiType(qtCreator_infofile)
 
 class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
     """BeagleBone Black Redis Activity Display"""
-    def __init__(self, redis_host=REDIS_HOST):
+    def __init__(self, host=False):
         QtWidgets.QWidget.__init__(self)
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
 
         # Configures redis Server
-        self.server = RedisServer(host=redis_host)
+        self.server = RedisServer(host=host)
 
         # Lists
         self.nodes = []
@@ -91,7 +91,8 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
 
         # Advanced Tab filters
         ip_filter = {'manual': self.staticipAdvancedBox.isChecked(), 'dhcp': self.dhcpAdvancedBox.isChecked(),
-                     'Undefined': self.undeterminedAdvancedBox.isChecked()}
+                     'Undefined': self.undeterminedAdvancedBox.isChecked(),
+                     'StaticIP': self.staticipAdvancedBox.isChecked()}
         equipment_filter = {'MKS': self.mksAdvancedBox.isChecked(), '4UHV': self.uhvAdvancedBox.isChecked(),
                             'MBTEMP': self.mbtempAdvancedBox.isChecked(), 'THERMO': self.thermoAdvancedBox.isChecked(),
                             'COUNTING': self.countingpruAdvancedBox.isChecked(),
@@ -493,4 +494,5 @@ if __name__ == "__main__":
     window = BBBreadMainWindow()
     window.show()
     sys.exit(app.exec_())
+
 

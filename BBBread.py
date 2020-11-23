@@ -12,13 +12,9 @@ if "bone" in subprocess.check_output(['uname', '-a']).decode():
     device = 'bbb'
     sys.path.insert(0, '/root/bbb-function/src/scripts')
     from bbb import BBB
-    IP = ""
 else:
     device = 'server'
     output = subprocess.check_output(['ip', 'a']).decode()
-    for line in output:
-        if '10.128.255.' in line:
-            IP = line[9:21]
 
 SERVER_IP = '10.128.255.3'
 BACKUP_SERVER = '10.128.255.4'
@@ -61,16 +57,19 @@ class RedisServer:
         if host:
             self.local_db = redis.StrictRedis(host='localhost', port=6379, socket_timeout=2)
             self.logger.debug("BBBread Server started successfully.")
+        # Probably connecting to a existing server, tries to connect to primary server
         else:
             self.local_db = redis.StrictRedis(host=SERVER_IP, port=6379, socket_timeout=2)
             try:
                 self.local_db.ping()
                 self.logger.debug("Connected to LA-RaCtrl-CO-Srv-1 Redis Server")
+            # If primary server is not available, tries to connect to backup server
             except redis.exceptions.ConnectionError:
                 self.local_db = redis.StrictRedis(host=BACKUP_SERVER, port=6379, socket_timeout=2)
                 try:
                     self.local_db.ping()
                     self.logger.debug("Connected to CA-RaCtrl-CO-Srv-1 Redis Server")
+                # Case no BBBread server is found
                 except redis.exceptions.ConnectionError:
                     self.logger.critical("No BBBread Server found")
                     raise Exception("No BBBread Server found")
@@ -132,23 +131,6 @@ class RedisServer:
             self.logger.critical("A fatal error occurred while sending the command:\n{}".format(e))
             return False
 
-    # TODO: verify if this method is still necessary
-    # def generate_hashname(self, bbb_ip: str):
-    #     """Verifies if there is one hash for the specified IP.
-    #     Returns the BBB hash name or NONE"""
-    #     bbb_hashname = sorted(self.local_db.keys("BBB:{}:*".format(bbb_ip)))
-    #     bbb_commandlistname = self.local_db.keys("BBB:{}:*:Command".format(bbb_ip))
-    #     if len(bbb_hashname) == 1:
-    #         return bbb_hashname[0].decode()
-    #     elif len(bbb_hashname) == 2 and bbb_commandlistname:
-    #         return bbb_hashname[0].decode()
-    #     elif len(bbb_hashname) < 1:
-    #         self.logger.error("Failed to find any BBB redis instance for the specified IP")
-    #         return None
-    #     else:
-    #         self.logger.error("Two or more hash with the same IP")
-    #         return None
-
     def bbb_state(self, hashname: str):
         """Verifies if node is active. Ping time inferior to 15 seconds
         Zero if active node, One if disconnected and Two if moved to other hash"""
@@ -161,29 +143,6 @@ class RedisServer:
             self.local_db.hset(hashname, 'state_string', 'Disconnected')
             return 1
         return 0
-
-    # TODO: verify if this method is still necessary
-    # def move_bbb(self, hashname: str):
-    #     """Verifies if a node was successfully moved to another hash.
-    #     If so, deletes it's previous hashname"""
-    #     if self.local_db.exists(hashname):
-    #         new_hash = self.local_db.hget(hashname, 'state_string').decode()
-    #         if new_hash == "BBB:IP-moved-to-DHCP":
-    #             hashes = self.list_connected(hostname=hashname.split(":")[2])
-    #             if len(hashes) == 2:
-    #                 self.local_db.delete(hashname)
-    #                 return True
-    #             return False
-    #         elif new_hash[:3] == "BBB":
-    #             if self.local_db.exists(new_hash) and self.local_db.hget(new_hash, "state_string") == b"Connected":
-    #                 self.local_db.delete(hashname)
-    #                 return True
-    #         else:
-    #             self.logger.warning("BBB didn't change IP")
-    #             return False
-    #     else:
-    #         self.logger.warning("Invalid hashname")
-    #         return False
 
     def delete_bbb(self, hashname: str):
         """Removes a hash from redis database"""
@@ -267,7 +226,7 @@ class RedisClient:
     def __init__(self, path=CONFIG_PATH, remote_host_1=SERVER_IP, remote_host_2=BACKUP_SERVER, log_path=LOG_PATH_BBB):
         # Configuring logging
         self.logger = logging.getLogger('bbbread')
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter('%(levelname)s:%(asctime)s:%(name)s:%(message)s')
         file_handler = logging.FileHandler(log_path)
         file_handler.setFormatter(formatter)
@@ -326,7 +285,6 @@ class RedisClient:
                 continue
             try:
                 self.force_update()
-                self.logger.debug("Remote DataBase pinged successfully")
                 time.sleep(10)
             except Exception as e:
                 self.logger.error("Pinging Thread died:\n{}".format(e))
@@ -445,4 +403,5 @@ if __name__ == '__main__':
     else:
         client = RedisClient()
     sys.exit()
+
 

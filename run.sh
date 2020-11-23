@@ -1,10 +1,11 @@
 #!/bin/bash
 set +x
-export BREAD_BASE=/root/bbbread
+export RSYNC_LOCAL=/root
 
 echo Synchronizing bbbread files
-rsync -a --delete-after 10.128.255.5::bbbread BREAD_BASE
+rsync -a --delete-after 10.128.255.5::bbbread $RSYNC_LOCAL
 
 
 echo Run script
-python-sirius ${BREAD_BASE}/BBBread_Client.py
+python-sirius ${RSYNC_LOCAL}/BBBread_Client.py
+
