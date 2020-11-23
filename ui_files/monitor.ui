@@ -328,6 +328,13 @@
               </widget>
              </item>
              <item>
+              <widget class="QCheckBox" name="ethbridgeBox">
+               <property name="text">
+                <string>PRUserial485</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <widget class="QLabel" name="operationLabel">
                <property name="font">
                 <font>
