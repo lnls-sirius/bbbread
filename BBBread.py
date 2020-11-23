@@ -19,7 +19,7 @@ else:
 SERVER_IP = '10.128.255.3'
 BACKUP_SERVER = '10.128.255.4'
 CONFIG_PATH = '/var/tmp/bbb.bin'
-LOG_PATH_SERVER = '/var/log/bbbread.log'
+LOG_PATH_SERVER = 'bbbread.log'
 LOG_PATH_BBB = '/var/log/bbbread.log'
 
 
@@ -221,13 +221,13 @@ class RedisClient:
     def __init__(self, path=CONFIG_PATH, remote_host_1=SERVER_IP, remote_host_2=BACKUP_SERVER, log_path=LOG_PATH_BBB):
         # Configuring logging
         self.logger = logging.getLogger('bbbread')
-        self.logger.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(levelname)s:%(asctime)s:%(name)s:%(message)s')
-        file_handler = logging.FileHandler(log_path)
-        file_handler.setFormatter(formatter)
-        self.logger.addHandler(file_handler)
-
-        self.logger.debug("Starting BBBread up")
+        # self.logger.setLevel(logging.DEBUG)
+        # formatter = logging.Formatter('%(levelname)s:%(asctime)s:%(name)s:%(message)s')
+        # file_handler = logging.FileHandler()
+        # file_handler.setFormatter(formatter)
+        # self.logger.addHandler(file_handler)
+        #
+        # self.logger.debug("Starting BBBread up")
 
         # Defining local and remote database
         self.local_db = redis.StrictRedis(host='127.0.0.1', port=6379, socket_timeout=2)
