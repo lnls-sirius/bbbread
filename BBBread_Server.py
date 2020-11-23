@@ -7,7 +7,7 @@ CONNECTED = 0
 DISCONNECTED = 1
 MOVED = 2
 
-server = RedisServer(host=True)
+server = RedisServer()
 local_db = server.local_db
 
 while True:

@@ -43,7 +43,7 @@ class Command:
 class RedisServer:
     """Runs on Control System's Server"""
 
-    def __init__(self, host=False, log_path=LOG_PATH_SERVER):
+    def __init__(self, log_path=LOG_PATH_SERVER):
         # Configuring logging
         self.logger = logging.getLogger("bbbreadServer")
         self.logger.setLevel(logging.DEBUG)
@@ -53,26 +53,21 @@ class RedisServer:
         self.logger.addHandler(file_handler)
         self.logger.debug("Starting up BBBread Server")
 
-        # Configuring redis server
-        if host:
-            self.local_db = redis.StrictRedis(host='localhost', port=6379, socket_timeout=2)
-            self.logger.debug("BBBread Server started successfully.")
         # Probably connecting to a existing server, tries to connect to primary server
-        else:
-            self.local_db = redis.StrictRedis(host=SERVER_IP, port=6379, socket_timeout=2)
+        self.local_db = redis.StrictRedis(host=SERVER_IP, port=6379, socket_timeout=2)
+        try:
+            self.local_db.ping()
+            self.logger.debug("Connected to LA-RaCtrl-CO-Srv-1 Redis Server")
+        # If primary server is not available, tries to connect to backup server
+        except redis.exceptions.ConnectionError:
+            self.local_db = redis.StrictRedis(host=BACKUP_SERVER, port=6379, socket_timeout=2)
             try:
                 self.local_db.ping()
-                self.logger.debug("Connected to LA-RaCtrl-CO-Srv-1 Redis Server")
-            # If primary server is not available, tries to connect to backup server
+                self.logger.debug("Connected to CA-RaCtrl-CO-Srv-1 Redis Server")
+            # Case no BBBread server is found
             except redis.exceptions.ConnectionError:
-                self.local_db = redis.StrictRedis(host=BACKUP_SERVER, port=6379, socket_timeout=2)
-                try:
-                    self.local_db.ping()
-                    self.logger.debug("Connected to CA-RaCtrl-CO-Srv-1 Redis Server")
-                # Case no BBBread server is found
-                except redis.exceptions.ConnectionError:
-                    self.logger.critical("No BBBread Server found")
-                    raise Exception("No BBBread Server found")
+                self.logger.critical("No BBBread Server found")
+                raise Exception("No BBBread Server found")
 
     # TODO: Change function name
     def list_connected(self, ip='', hostname=''):
