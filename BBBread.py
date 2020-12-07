@@ -14,10 +14,9 @@ if "bone" in subprocess.check_output(['uname', '-a']).decode():
     from bbb import BBB
 else:
     device = 'server'
-    output = subprocess.check_output(['ip', 'a']).decode()
 
-SERVER_IP = '10.128.255.3'
-BACKUP_SERVER = '10.128.255.4'
+LA_SERVER_IP = '10.128.255.3'
+CA_SERVER_IP = '10.128.255.4'
 CONFIG_PATH = '/var/tmp/bbb.bin'
 LOG_PATH_SERVER = 'bbbread.log'
 LOG_PATH_BBB = '/var/log/bbbread.log'
@@ -54,13 +53,13 @@ class RedisServer:
         self.logger.debug("Starting up BBBread Server")
 
         # Probably connecting to a existing server, tries to connect to primary server
-        self.local_db = redis.StrictRedis(host=SERVER_IP, port=6379, socket_timeout=2)
+        self.local_db = redis.StrictRedis(host=LA_SERVER_IP, port=6379, socket_timeout=2)
         try:
             self.local_db.ping()
             self.logger.debug("Connected to LA-RaCtrl-CO-Srv-1 Redis Server")
         # If primary server is not available, tries to connect to backup server
         except redis.exceptions.ConnectionError:
-            self.local_db = redis.StrictRedis(host=BACKUP_SERVER, port=6379, socket_timeout=2)
+            self.local_db = redis.StrictRedis(host=CA_SERVER_IP, port=6379, socket_timeout=2)
             try:
                 self.local_db.ping()
                 self.logger.debug("Connected to CA-RaCtrl-CO-Srv-1 Redis Server")
@@ -218,7 +217,7 @@ class RedisClient:
     A class to write BBB information on a REDIS server
     """
 
-    def __init__(self, path=CONFIG_PATH, remote_host_1=SERVER_IP, remote_host_2=BACKUP_SERVER, log_path=LOG_PATH_BBB):
+    def __init__(self, path=CONFIG_PATH, remote_host_1=LA_SERVER_IP, remote_host_2=CA_SERVER_IP, log_path=LOG_PATH_BBB):
         # Configuring logging
         self.logger = logging.getLogger('bbbread')
         self.logger.setLevel(logging.DEBUG)
@@ -294,6 +293,7 @@ class RedisClient:
                 time.sleep(2)
                 continue
             try:
+                time.sleep(1)
                 self.command_listname = self.hashname + ":Command"
                 if self.remote_db.keys(self.command_listname):
                     command = self.remote_db.lpop(self.command_listname).decode()
@@ -393,10 +393,4 @@ class RedisClient:
 
 
 if __name__ == '__main__':
-    if device == 'server':
-        server = RedisServer()
-    else:
-        client = RedisClient()
     sys.exit()
-
-
