@@ -9,6 +9,7 @@ from BBBread import RedisServer
 qtCreatorFile = "ui_files/monitor.ui"
 qtCreator_configfile = "ui_files/configBBB.ui"
 qtCreator_infofile = "ui_files/infoBBB.ui"
+qtCreator_logsfile = "ui_files/logsBBB.ui"
 
 BASIC_TAB = 0
 ADVANCED_TAB = 1
@@ -27,6 +28,7 @@ for i in range(20):
 Ui_MainWindow, QtBaseClass = uic.loadUiType(qtCreatorFile)
 Ui_MainWindow_config, QtBaseClass_config = uic.loadUiType(qtCreator_configfile)
 Ui_MainWindow_info, QtBaseClass_info = uic.loadUiType(qtCreator_infofile)
+Ui_MainWindow_logs, QtBaseClass_logs = uic.loadUiType(qtCreator_logsfile)
 
 
 class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
@@ -65,6 +67,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
         self.configButton.clicked.connect(self.config_node)
         self.infoButton.clicked.connect(self.show_node_info)
         self.applyserviceButton.clicked.connect(self.service_application)
+        self.logsButton.clicked.connect(self.display_logs)
 
     def update_nodes(self):
         """Updates list of BBBs shown"""
@@ -114,7 +117,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
                 node_details = info[b'details'].decode()
                 node_string = "{} - {}".format(node_ip, node_name)
             except Exception as e:
-                print(e)
+                #print(e)
                 continue
             # Increments Connected Number of BBBs if beagle is connected
             if node_state == "Connected":
@@ -223,6 +226,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
             if len(selected_items) == 1:
                 self.configButton.setEnabled(True)
                 self.infoButton.setEnabled(True)
+                self.logsButton.setEnabled(True)
             else:
                 self.configButton.setEnabled(False)
                 self.infoButton.setEnabled(False)
@@ -231,6 +235,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
             else:
                 self.applyserviceButton.setEnabled(False)
         else:
+            self.logsButton.setEnabled(False)
             self.rebootButton.setEnabled(False)
             self.deleteButton.setEnabled(False)
             self.configButton.setEnabled(False)
@@ -285,6 +290,24 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
                 QtWidgets.QMessageBox.warning(self, 'Warning',
                                               "The following nodes weren't found in the Redis Database:\n{}"
                                               .format("\n".join(errors)), QtWidgets.QMessageBox.Abort)
+
+    def display_logs(self):
+        """Shows selected BBB's information"""
+        current_list = self.tabWidget.currentIndex()
+        if current_list == BASIC_TAB:
+            bbb = self.basicList.selectedItems()[0].text()
+        elif current_list == ADVANCED_TAB:
+            bbb = self.advancedList.selectedItems()[0].text()
+        else:
+            bbb = self.serviceList.selectedItems()[0].text()
+        bbb_ip, bbb_hostname = bbb.split(" - ")
+        hashname = "BBB:{}:{}:Logs".format(bbb_ip, bbb_hostname)
+        try:
+            self.window = BBBLogs(self.server.get_logs(hashname))
+            self.window.show()
+        except KeyError:
+            QtWidgets.QMessageBox.warning(self, "Warning", "The node you are trying to get information isn't connected",
+                                          QtWidgets.QMessageBox.Abort)
 
     def show_node_info(self):
         """Shows selected BBB's information"""
@@ -375,6 +398,43 @@ class BBBInfo(QtWidgets.QWidget, Ui_MainWindow_info):
             self.nameserversvalueLabel.setText(nameservers)
             self.sectorvalueLabel.setText(node_sector)
             self.lastseenvalueLabel.setText(strftime("%a, %d %b %Y   %H:%M:%S", localtime(ping_time)))
+
+class TableModel(QtCore.QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModel, self).__init__()
+        self._data = data
+        self._header = ["Timestamp", "Occurence"]
+
+    def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
+        if role == QtCore.Qt.DisplayRole and orientation == QtCore.Qt.Horizontal:
+            return self._header[section]
+
+    def data(self, index, role):
+        if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
+            return self._data[index.row()][index.column()]
+
+    def rowCount(self, index):
+        return len(self._data)
+
+    def columnCount(self, index):
+        return len(self._data[0])
+
+
+class BBBLogs(QtWidgets.QWidget, Ui_MainWindow_logs):
+    def __init__(self, logs):
+        QtWidgets.QWidget.__init__(self)
+        Ui_MainWindow_logs.__init__(self)
+        self.setupUi(self)
+
+        model = TableModel(logs)
+        self.logsTable.setModel(model)
+        self.logsTable.horizontalHeader().setStretchLastSection(True)
+
+    def update_time_window(self):
+        pass
+
+    def update_name_filter(self):
+        pass
 
 
 class BBBConfig(QtWidgets.QWidget, Ui_MainWindow_config):

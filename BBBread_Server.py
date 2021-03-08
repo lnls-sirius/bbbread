@@ -18,5 +18,3 @@ while True:
             bbb_state = server.bbb_state(bbb)
     except AttributeError:
         continue
-
-

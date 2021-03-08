@@ -637,6 +637,16 @@
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_5">
          <item>
+          <widget class="QPushButton" name="logsButton">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>View Logs</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="infoButton">
            <property name="enabled">
             <bool>false</bool>
