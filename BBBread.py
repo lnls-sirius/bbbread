@@ -395,6 +395,9 @@ class RedisClient:
             old_info[b'ip_address'] = self.bbb_ip
             if self.remote_db.keys(old_hashname + ":Command"):
                 self.remote_db.rename(old_hashname + ":Command", self.hashname + ":Command")
+            if self.remote_db.keys(old_hashname + ":Logs"):
+                self.remote_db.rename(old_hashname + ":Logs", self.hashname + ":Logs")
+
             self.logger.info("old ip: {}, new ip: {}, old hostname: {}, new hostname: {}"
                              .format(self.bbb_ip, new_ip, self.bbb_hostname, new_hostname))
             self.remote_db.hmset(old_hashname, old_info)
