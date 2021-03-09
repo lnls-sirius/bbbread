@@ -1,7 +1,7 @@
 """Alter REDIS_HOST to your host's IP"""
 
 import sys
-from time import sleep, localtime, strftime
+from time import sleep, localtime, strftime, strptime, mktime
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
 from BBBread import RedisServer
@@ -438,10 +438,19 @@ class TableModel(QtCore.QAbstractTableModel):
         if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
             return self._data[index.row()][index.column()]
 
+    def get_data(self):
+        return self._data
+
+    def set_data(self, data):
+        self._data = data
+        self.layoutChanged.emit()
+
     def rowCount(self, index):
         return len(self._data)
 
     def columnCount(self, index):
+        if(self.rowCount(0) < 1):
+            return 0
         return len(self._data[0])
 
 
@@ -449,17 +458,50 @@ class BBBLogs(QtWidgets.QWidget, Ui_MainWindow_logs):
     def __init__(self, logs):
         QtWidgets.QWidget.__init__(self)
         Ui_MainWindow_logs.__init__(self)
+        self.data = logs
         self.setupUi(self)
 
-        model = TableModel(logs)
-        self.logsTable.setModel(model)
+        self.model = TableModel(self.data)
+        self.logsTable.setModel(self.model)
         self.logsTable.horizontalHeader().setStretchLastSection(True)
 
+        self.fromTimeEdit.dateTimeChanged.connect(self.update_time_window)
+        self.toTimeEdit.dateTimeChanged.connect(self.update_time_window)
+
+        self.filterEdit.textChanged.connect(self.update_name_filter)
+
     def update_time_window(self):
-        pass
+        max_date = self.toTimeEdit.dateTime().toPyDateTime().timestamp()
+        min_date = self.fromTimeEdit.dateTime().toPyDateTime().timestamp()
+
+        if(min_date > max_date):
+            self.fromTimeEdit.setDateTime(self.toTimeEdit.dateTime())
+
+        if(min_date == max_date):
+            self.model.set_data(self.data)
+
+        length = len(self.data)
+        min_index, max_index = 0, length
+
+        for index, r in enumerate(self.data):
+            if mktime(strptime(r[0], '%d/%m/%Y-%H:%M:%S')) > min_date:
+                min_index = index
+                break
+
+        for index, r in enumerate(self.data[::-1]):
+            if mktime(strptime(r[0], '%d/%m/%Y-%H:%M:%S')) < max_date:
+                max_index = length-index
+                break
+
+        self.model.set_data(self.data[min_index:max_index])
+
 
     def update_name_filter(self):
-        pass
+        search = self.filterEdit.text()
+        data = [r for r in self.data if search in r[1]]
+        print(data)
+
+        self.model.set_data(data)
 
 
 class BBBConfig(QtWidgets.QWidget, Ui_MainWindow_config):

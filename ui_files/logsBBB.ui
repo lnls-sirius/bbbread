@@ -96,7 +96,7 @@
           </widget>
          </item>
          <item row="2" column="1">
-          <widget class="QDateTimeEdit" name="dateTimeEdit">
+          <widget class="QDateTimeEdit" name="toTimeEdit">
            <property name="date">
             <date>
              <year>2030</year>
