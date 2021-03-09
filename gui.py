@@ -49,6 +49,23 @@ class UpdateNodesThread(QtCore.QThread):
 
         self.finished.emit((nodes, nodes_info))
 
+class UpdateLogsThread(QtCore.QThread):
+    received=QtCore.pyqtSignal(list)
+
+    def __init__(self, server, hostname):
+        QtCore.QThread.__init__(self)
+        self.server = server
+        self.hostname = hostname
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        while True:
+            logs = self.server.get_logs(self.hostname)
+            self.received.emit(logs)
+            sleep(10)
+
 
 class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
     """BeagleBone Black Redis Activity Display"""
@@ -328,7 +345,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
         bbb_ip, bbb_hostname = bbb.split(" - ")
         hashname = "BBB:{}:{}:Logs".format(bbb_ip, bbb_hostname)
         try:
-            self.window = BBBLogs(self.server.get_logs(hashname))
+            self.window = BBBLogs(self.server, hashname)
             self.window.show()
         except KeyError:
             QtWidgets.QMessageBox.warning(self, "Warning", "The node you are trying to get information isn't connected",
@@ -455,13 +472,16 @@ class TableModel(QtCore.QAbstractTableModel):
 
 
 class BBBLogs(QtWidgets.QWidget, Ui_MainWindow_logs):
-    def __init__(self, logs):
+    def __init__(self, server, hashname):
         QtWidgets.QWidget.__init__(self)
         Ui_MainWindow_logs.__init__(self)
-        self.data = logs
         self.setupUi(self)
 
-        self.model = TableModel(self.data)
+        self.logs_thread = UpdateLogsThread(server, hashname)
+        self.logs_thread.received.connect(self.update_table)
+        self.logs_thread.start()
+
+        self.model = TableModel([[]])
         self.logsTable.setModel(self.model)
         self.logsTable.horizontalHeader().setStretchLastSection(True)
 
@@ -469,6 +489,10 @@ class BBBLogs(QtWidgets.QWidget, Ui_MainWindow_logs):
         self.toTimeEdit.dateTimeChanged.connect(self.update_time_window)
 
         self.filterEdit.textChanged.connect(self.update_name_filter)
+
+    def update_table(self, logs):
+        self.model.set_data(logs)
+        self.data = logs
 
     def update_time_window(self):
         max_date = self.toTimeEdit.dateTime().toPyDateTime().timestamp()
