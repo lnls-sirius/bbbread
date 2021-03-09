@@ -16,8 +16,8 @@ if "armv7" in subprocess.check_output(['uname', '-a']).decode():
 else:
     device = 'server'
 
-LA_SERVER_IP = '10.0.38.46'
-CA_SERVER_IP = '10.0.38.46'
+LA_SERVER_IP = '192.168.0.10'
+CA_SERVER_IP = '192.168.0.10'
 CONFIG_PATH = '/var/tmp/bbb.bin'
 LOG_PATH_SERVER = 'bbbread.log'
 LOG_PATH_BBB = '/var/log/bbbread.log'
@@ -69,25 +69,32 @@ class RedisServer:
                 self.logger.error("No BBBread Server found")
                 raise Exception("No BBBread Server found")
 
+    def get_logs(self, hashname):
+        return [[key.decode('utf-8'),value.decode('utf-8')] for key,value in self.local_db.hgetall(hashname).items()]
+
     # TODO: Change function name
     def list_connected(self, ip='', hostname=''):
         """Returns a list of all BeagleBone Blacks connected to REDIS database
         If IP or hostname is specified lists only the ones with the exact specified parameter"""
+        command_instances = []
+        log_instances = []
+        all_connected = []
+
         if ip and hostname:
             all_instances = self.local_db.keys('BBB:{}:{}'.format(ip, hostname))
-            command_instances = []
         elif ip and not hostname:
             all_instances = self.local_db.keys('BBB:{}:*'.format(ip))
             command_instances = self.local_db.keys('BBB:{}:*:Command'.format(ip))
+            log_instances = self.local_db.keys('BBB:{}:*:Logs'.format(ip))
         elif not ip and hostname:
             all_instances = self.local_db.keys('BBB:*:{}'.format(hostname))
-            command_instances = []
         else:
             all_instances = self.local_db.keys('BBB:*')
             command_instances = self.local_db.keys('BBB:*:Command')
-        all_connected = []
+            log_instances = self.local_db.keys('BBB:*:Logs')
+        
         for node in all_instances:
-            if node in command_instances:
+            if node in command_instances or node in log_instances:
                 continue
             all_connected.append(node.decode())
         return all_connected
@@ -129,13 +136,17 @@ class RedisServer:
     def bbb_state(self, hashname: str):
         """Verifies if node is active. Ping time inferior to 15 seconds
         Zero if active node, One if disconnected and Two if moved to other hash"""
+        now = datetime.now().strftime("%m/%d/%Y-%H:%M:%S")
+
         last_ping = float(self.local_db.hget(hashname, 'ping_time').decode())
         time_since_ping = time.time() - last_ping
         node_state = self.local_db.hget(hashname, 'state_string').decode()
         if node_state[:3] == "BBB":
             return 2
         elif time_since_ping >= 11:
-            self.local_db.hset(hashname, 'state_string', 'Disconnected')
+            if node_state != 'Disconnected':
+                self.log_remote(hashname+":Logs", "Disconnected", now)
+                self.local_db.hset(hashname, 'state_string', 'Disconnected')
             return 1
         return 0
 
@@ -211,6 +222,9 @@ class RedisServer:
             self.logger.info("{} SERVICE RESTARTED - {}".format(ip, service))
         return check
 
+    def log_remote(self, bbb, message, date):
+        self.local_db.hset(bbb, date, message)
+
 
 # TODO: Implement commutable server IP
 class RedisClient:
@@ -284,6 +298,7 @@ class RedisClient:
                 time.sleep(10)
             except Exception as e:
                 self.logger.error("Pinging Thread died:\n{}".format(e))
+                self.log_remote("Pinging Thread died:\n{}".format(e))
                 time.sleep(1)
                 self.find_active()
 
