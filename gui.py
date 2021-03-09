@@ -30,6 +30,25 @@ Ui_MainWindow_config, QtBaseClass_config = uic.loadUiType(qtCreator_configfile)
 Ui_MainWindow_info, QtBaseClass_info = uic.loadUiType(qtCreator_infofile)
 Ui_MainWindow_logs, QtBaseClass_logs = uic.loadUiType(qtCreator_logsfile)
 
+class UpdateNodesThread(QtCore.QThread):
+    finished= QtCore.pyqtSignal(tuple)
+
+    def __init__(self, server):
+        QtCore.QThread.__init__(self)
+        self.server = server
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        nodes = self.server.list_connected()
+        nodes_info = {}
+
+        for node in nodes:
+            nodes_info[node] = self.server.get_node(node)
+
+        self.finished.emit((nodes, nodes_info))
+
 
 class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
     """BeagleBone Black Redis Activity Display"""
@@ -69,13 +88,19 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
         self.applyserviceButton.clicked.connect(self.service_application)
         self.logsButton.clicked.connect(self.display_logs)
 
+        #Threading
+        self.nodes_thread = UpdateNodesThread(self.server)
+        self.nodes_thread.finished.connect(self.update_node_list)
+
     def update_nodes(self):
         """Updates list of BBBs shown"""
         # Stores every BBB information
-        self.nodes = self.server.list_connected()
+        if not self.nodes_thread.isRunning():
+            self.nodes_thread.start()
+
+    def update_node_list(self, nodes):
+        self.nodes, self.nodes_info = nodes
         connected_number = 0
-        for node in self.nodes:
-            self.nodes_info[node] = self.server.get_node(node)
 
         current_tab = self.tabWidget.currentIndex()
         if current_tab == ADVANCED_TAB:
