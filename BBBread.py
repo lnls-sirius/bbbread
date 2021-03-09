@@ -3,12 +3,13 @@ import redis
 import time
 import subprocess
 import logging
+from datetime import datetime
 
 import os
 import sys
 
 # Verifies if device is a BBB
-if "bone" in subprocess.check_output(['uname', '-a']).decode():
+if "armv7" in subprocess.check_output(['uname', '-a']).decode():
     device = 'bbb'
     sys.path.insert(0, '/root/bbb-function/src/scripts')
     from bbb import BBB
@@ -210,9 +211,6 @@ class RedisServer:
             self.logger.info("{} SERVICE RESTARTED - {}".format(ip, service))
         return check
 
-    def get_logs(self, hashname):
-        return [[key.decode('utf-8'),value.decode('utf-8')] for key,value in self.local_db.hgetall(hashname).items()]
-
 
 # TODO: Implement commutable server IP
 class RedisClient:
@@ -246,6 +244,7 @@ class RedisClient:
         self.bbb_hostname = self.bbb_hostname.decode()
         self.hashname = "BBB:{}:{}".format(self.bbb_ip, self.bbb_hostname)
         self.command_listname = "BBB:{}:{}:Command".format(self.bbb_ip, self.bbb_hostname)
+        self.logs_name= "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
 
         # Pinging thread
         self.ping_thread = threading.Thread(target=self.ping_remote, daemon=True)
@@ -297,6 +296,7 @@ class RedisClient:
                 continue
             try:
                 time.sleep(1)
+                now = datetime.now().strftime("%m/%d/%Y-%H:%M:%S")
                 self.command_listname = self.hashname + ":Command"
                 if self.remote_db.keys(self.command_listname):
                     command = self.remote_db.lpop(self.command_listname).decode()
@@ -310,6 +310,7 @@ class RedisClient:
                     self.logger.info("command received {}".format(command))
                     if command[0] == Command.REBOOT:
                         self.logger.info("Reboot command received")
+                        self.log_remote("Reboot command received", now)
                         self.bbb.reboot()
 
                     elif command[0] == Command.SET_HOSTNAME and len(command) == 2:
@@ -317,6 +318,7 @@ class RedisClient:
                         self.bbb.update_hostname(new_hostname)
                         # Updates variable names
                         self.logger.info("Hostname changed to " + new_hostname)
+                        self.log_remote("Hostname changed to {}".format(new_hostname), now)
                         self.listening = False
 
                     elif command[0] == Command.SET_IP:
@@ -328,8 +330,9 @@ class RedisClient:
                             new_gateway = command[4]
                             self.bbb.update_ip_address(ip_type, new_ip, new_mask, new_gateway)
                             # Updates variable names
-                            self.logger.info("IP manually changed to {},"
-                                             "netmask {}, gateway {}".format(new_ip, new_mask, new_gateway))
+                            info = "IP manually changed to {}, netmask {}, gateway {}".format(new_ip, new_mask, new_gateway)
+                            self.logger.info(info)
+                            self.log_remote(info, now)
                             self.listening = False
 
                         # Verifies if IP is DHCP
@@ -338,6 +341,7 @@ class RedisClient:
                             # Updates variable names
                             time.sleep(1)
                             self.logger.info("IP changed to DHCP")
+                            self.log_remote("IP changed to DHCP", now)
                             self.listening = False
 
                     elif command[0] == Command.SET_NAMESERVERS and len(command) == 3:
@@ -345,6 +349,7 @@ class RedisClient:
                         nameserver_2 = command[2]
                         self.bbb.update_nameservers(nameserver_1, nameserver_2)
                         self.logger.info("Nameservers changed: {}, {}".format(nameserver_1, nameserver_2))
+                        self.log_remote("Nameservers changed: {}, {}".format(nameserver_1, nameserver_2), now)
 
                     elif command[0] == Command.STOP_SERVICE and len(command) == 2:
                         service_name = command[1]
@@ -352,6 +357,7 @@ class RedisClient:
                             self.logger.warning("Stopping BBBread")
                         subprocess.check_output(['systemctl', 'stop', service_name])
                         self.logger.info("{} service stopped".format(service_name))
+                        self.log_remote("{} service stopped".format(service_name), now)
 
                     elif command[0] == Command.RESTART_SERVICE and len(command) == 2:
                         service_name = command[1]
@@ -359,12 +365,17 @@ class RedisClient:
                             self.logger.warning("Restarting BBBread")
                         subprocess.check_output(['systemctl', 'restart', service_name])
                         self.logger.info("{} service restarted".format(service_name))
+                        self.log_remote("{} service restarted".format(service_name), now)
 
             except Exception as e:
                 self.logger.error("Listening Thread died:\n{}".format(e))
+                self.log_remote("Listening Thread died:\n{}".format(e), now)
                 time.sleep(1)
                 self.find_active()
                 continue
+
+    def log_remote(self, message, date):
+        self.remote_db.hset(self.logs_name, date, message)
 
     def force_update(self, log=False):
         """Updates local and remote database"""
@@ -384,6 +395,9 @@ class RedisClient:
             old_info[b'ip_address'] = self.bbb_ip
             if self.remote_db.keys(old_hashname + ":Command"):
                 self.remote_db.rename(old_hashname + ":Command", self.hashname + ":Command")
+            if self.remote_db.keys(old_hashname + ":Logs"):
+                self.remote_db.rename(old_hashname + ":Logs", self.hashname + ":Logs")
+
             self.logger.info("old ip: {}, new ip: {}, old hostname: {}, new hostname: {}"
                              .format(self.bbb_ip, new_ip, self.bbb_hostname, new_hostname))
             self.remote_db.hmset(old_hashname, old_info)
