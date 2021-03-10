@@ -17,7 +17,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string>BBB Redis Activity Display</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_4">
    <item>
@@ -306,6 +306,7 @@
                  <family>DejaVu Sans</family>
                  <weight>75</weight>
                  <bold>true</bold>
+                 <kerning>true</kerning>
                 </font>
                </property>
                <property name="text">
@@ -341,6 +342,7 @@
                  <family>DejaVu Sans</family>
                  <weight>75</weight>
                  <bold>true</bold>
+                 <kerning>true</kerning>
                 </font>
                </property>
                <property name="text">
@@ -393,6 +395,7 @@
                  <family>DejaVu Sans</family>
                  <weight>75</weight>
                  <bold>true</bold>
+                 <kerning>true</kerning>
                 </font>
                </property>
                <property name="text">
