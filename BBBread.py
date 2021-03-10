@@ -363,29 +363,29 @@ class RedisClient:
                     elif command[0] == Command.SET_NAMESERVERS and len(command) == 3:
                         nameserver_1 = command[1]
                         nameserver_2 = command[2]
-                        self.bbb.update_nameservers(nameserver_1, nameserver_2)
                         self.logger.info("Nameservers changed: {}, {}".format(nameserver_1, nameserver_2))
                         self.log_remote("Nameservers changed: {}, {}".format(nameserver_1, nameserver_2), now)
+                        self.bbb.update_nameservers(nameserver_1, nameserver_2)
 
                     elif command[0] == Command.STOP_SERVICE and len(command) == 2:
                         service_name = command[1]
                         if service_name == 'bbbread':
                             self.logger.warning("Stopping BBBread")
-                        subprocess.check_output(['systemctl', 'stop', service_name])
                         self.logger.info("{} service stopped".format(service_name))
                         self.log_remote("{} service stopped".format(service_name), now)
+                        subprocess.check_output(['systemctl', 'stop', service_name])
 
                     elif command[0] == Command.RESTART_SERVICE and len(command) == 2:
                         service_name = command[1]
                         if service_name == 'bbbread':
                             self.logger.warning("Restarting BBBread")
-                        subprocess.check_output(['systemctl', 'restart', service_name])
                         self.logger.info("{} service restarted".format(service_name))
                         self.log_remote("{} service restarted".format(service_name), now)
+                        subprocess.check_output(['systemctl', 'restart', service_name])
 
             except Exception as e:
                 self.logger.error("Listening Thread died:\n{}".format(e))
-                self.log_remote("Listening Thread died:\n{}".format(e), now)
+                self.log_remote("Listening Thread died: {}".format(e), now)
                 time.sleep(1)
                 self.find_active()
                 continue
