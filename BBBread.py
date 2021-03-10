@@ -16,8 +16,8 @@ if "armv7" in subprocess.check_output(['uname', '-a']).decode():
 else:
     device = 'server'
 
-LA_SERVER_IP = '192.168.0.10'
-CA_SERVER_IP = '192.168.0.10'
+LA_SERVER_IP = '10.0.38.46'
+CA_SERVER_IP = '10.0.38.59'
 CONFIG_PATH = '/var/tmp/bbb.bin'
 LOG_PATH_SERVER = 'bbbread.log'
 LOG_PATH_BBB = '/var/log/bbbread.log'
