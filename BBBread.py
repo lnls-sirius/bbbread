@@ -170,7 +170,7 @@ class RedisServer:
     def bbb_state(self, hashname: str):
         """Verifies if node is active. Ping time inferior to 15 seconds
         Zero if active node, One if disconnected and Two if moved to other hash"""
-        now = datetime.now().strftime("%m/%d/%Y-%H:%M:%S")
+        now = datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
 
         last_ping = float(self.local_db.hget(hashname, "ping_time").decode())
         time_since_ping = time.time() - last_ping
@@ -362,7 +362,7 @@ class RedisClient:
                 self.force_update()
                 time.sleep(10)
             except Exception as e:
-                now = datetime.now().strftime("%m/%d/%Y-%H:%M:%S")
+                now = datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
                 self.logger.error("Pinging Thread died:\n{}".format(e))
                 self.log_remote("Pinging Thread died: {}".format(e), now)
                 time.sleep(1)
@@ -377,7 +377,7 @@ class RedisClient:
                 continue
             try:
                 time.sleep(1)
-                now = datetime.now().strftime("%m/%d/%Y-%H:%M:%S")
+                now = datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
                 self.command_listname = self.hashname + ":Command"
                 if self.remote_db.keys(self.command_listname):
                     command = self.remote_db.lpop(self.command_listname).decode()
@@ -512,7 +512,7 @@ class RedisClient:
             self.logger.info("updating remote db")
         status = self.remote_db.hget(self.hashname, "state_string")
         if status and status.decode() == "Disconnected":
-            now = datetime.now().strftime("%m/%d/%Y-%H:%M:%S")
+            now = datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
             self.log_remote("Reconnected", now)
         self.remote_db.hmset(self.hashname, info)
         self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
