@@ -182,11 +182,12 @@ class RedisServer:
             return 2
         elif time_since_ping >= 11:
             if node_state != "Disconnected":
-                self.log_remote(hashname + ":Logs", "Disconnected", now)
+                if time_since_ping > 90:
+                    self.log_remote(hashname + ":Logs", "Disconnected", int(now))
                 self.local_db.hset(hashname, "state_string", "Disconnected")
             return 1
-        if self.local_db.hvals(hashname + ":Logs")[0].decode() == "Disconnected":
-            self.log_remote(hashname + ":Logs", "Reconnected (logged by server)", now)
+        if len(self.local_db.hvals(hashname + ":Logs")) > 0 and self.local_db.hvals(hashname + ":Logs")[len-1].decode() == "Disconnected" and time_since_ping > 90:
+            self.log_remote(hashname + ":Logs", "Reconnected (logged by server)", int(now))
         return 0
 
     def delete_bbb(self, hashname: str):
