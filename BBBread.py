@@ -185,6 +185,8 @@ class RedisServer:
                 self.log_remote(hashname + ":Logs", "Disconnected", now)
                 self.local_db.hset(hashname, "state_string", "Disconnected")
             return 1
+        if self.local_db.hvals(hashname + ":Logs")[0].decode() == "Disconnected":
+            self.log_remote(hashname + ":Logs", "Reconnected (logged by server)", now)
         return 0
 
     def delete_bbb(self, hashname: str):
