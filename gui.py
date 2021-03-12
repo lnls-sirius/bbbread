@@ -1,7 +1,7 @@
 """Alter REDIS_HOST to your host's IP"""
 
-import sys, datetime
-from time import sleep, localtime, strftime, strptime, mktime
+import sys
+from time import sleep, localtime, strftime, strptime
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
 from BBBread import RedisServer
@@ -82,11 +82,11 @@ class UpdateLogsThread(QtCore.QThread):
                     bbb_logs = []
                     bbb_logs = self.server.get_logs(name)
                     for l in bbb_logs:
-                        l.insert(1,name[4:]) 
+                        l.insert(1,name[4:name.index(":Logs")]) 
 
                     all_logs.extend(bbb_logs)
 
-                all_logs = sorted(all_logs,key=lambda x: mktime(strptime(x[0], "%d/%m/%Y-%H:%M:%S")), reverse=True)
+                all_logs = sorted(all_logs,key=lambda x: int(x[0]), reverse=True)
 
                 self.received.emit(all_logs)
                 sleep(10)
@@ -154,6 +154,9 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
             self.logs_thread.start()
 
     def update_logs_list(self, logs):
+        self.data = logs
+        for l in logs:
+            l[0] = time.strftime('%d/%m/%Y %H:%M:%S', int(l[0]))
         self.logs_model.set_data(logs)
 
     def update_node_list(self, nodes):
@@ -592,8 +595,10 @@ class BBBLogs(QtWidgets.QWidget, Ui_MainWindow_logs):
         self.filterEdit.textChanged.connect(self.update_name_filter)
 
     def update_table(self, logs):
-        self.model.set_data(logs)
         self.data = logs
+        for l in logs:
+            l[0] = time.strftime('%d/%m/%Y %H:%M:%S', int(l[0]))
+        self.model.set_data(logs)
 
     def update_time_window(self):
         max_date = self.toTimeEdit.dateTime().toPyDateTime().timestamp()
@@ -610,12 +615,12 @@ class BBBLogs(QtWidgets.QWidget, Ui_MainWindow_logs):
 
         # Compares Unix timestamp for logs and filter, stops when a log satisfies the filter
         for index, r in enumerate(self.data):
-            if mktime(strptime(r[0], "%d/%m/%Y-%H:%M:%S")) > min_date:
+            if int(r[0]) > min_date:
                 min_index = index
                 break
 
         for index, r in enumerate(self.data[::-1]):
-            if mktime(strptime(r[0], "%d/%m/%Y-%H:%M:%S")) < max_date:
+            if int(r[0]) < max_date:
                 max_index = length - index
                 break
 
