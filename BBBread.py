@@ -173,7 +173,7 @@ class RedisServer:
     def bbb_state(self, hashname: str):
         """Verifies if node is active. Ping time inferior to 15 seconds
         Zero if active node, One if disconnected and Two if moved to other hash"""
-        now = int(time.time())-10800
+        now = time.time()-10800
 
         last_ping = float(self.local_db.hget(hashname, "ping_time").decode())
         time_since_ping = time.time() - last_ping
@@ -185,8 +185,6 @@ class RedisServer:
                 self.log_remote(hashname + ":Logs", "Disconnected", now)
                 self.local_db.hset(hashname, "state_string", "Disconnected")
             return 1
-            if self.local_db.hvals(hashname + ":Logs")[0].decode() == "Disconnected":
-                self.log_remote(hashname + ":Logs", "Connected (logged by server)", now)
         return 0
 
     def delete_bbb(self, hashname: str):
@@ -367,7 +365,7 @@ class RedisClient:
                 self.force_update()
                 time.sleep(10)
             except Exception as e:
-                now = int(time.time())
+                now = time.time()-10800
                 self.logger.error("Pinging Thread died:\n{}".format(e))
                 self.log_remote("Pinging Thread died: {}".format(e), now)
                 time.sleep(1)
@@ -382,7 +380,7 @@ class RedisClient:
                 continue
             try:
                 time.sleep(1)
-                now = int(time.time())
+                now = time.time()-10800
                 self.command_listname = self.hashname + ":Command"
                 if self.remote_db.keys(self.command_listname):
                     command = self.remote_db.lpop(self.command_listname).decode()
@@ -517,7 +515,7 @@ class RedisClient:
             self.logger.info("updating remote db")
         status = self.remote_db.hget(self.hashname, "state_string")
         if status and status.decode() == "Disconnected":
-            now = int(time.time())
+            now = time.time()-10800
             self.log_remote("Reconnected", now)
         self.remote_db.hmset(self.hashname, info)
         self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
