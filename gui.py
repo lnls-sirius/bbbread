@@ -1,6 +1,7 @@
 """Alter REDIS_HOST to your host's IP"""
 
 import sys
+from datetime import datetime
 from time import sleep, localtime, strftime, strptime
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
@@ -156,7 +157,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
     def update_logs_list(self, logs):
         self.data = logs
         for l in logs:
-            l[0] = time.strftime('%d/%m/%Y %H:%M:%S', int(l[0]))
+            l[0] = datetime.utcfromtimestamp(int(l[0])).strftime('%d/%m/%Y %H:%M:%S')
         self.logs_model.set_data(logs)
 
     def update_node_list(self, nodes):
@@ -597,7 +598,7 @@ class BBBLogs(QtWidgets.QWidget, Ui_MainWindow_logs):
     def update_table(self, logs):
         self.data = logs
         for l in logs:
-            l[0] = time.strftime('%d/%m/%Y %H:%M:%S', int(l[0]))
+            l[0] = datetime.utcfromtimestamp(int(l[0])).strftime('%d/%m/%Y %H:%M:%S')
         self.model.set_data(logs)
 
     def update_time_window(self):

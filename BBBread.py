@@ -185,7 +185,7 @@ class RedisServer:
                 self.log_remote(hashname + ":Logs", "Disconnected", now)
                 self.local_db.hset(hashname, "state_string", "Disconnected")
             return 1
-            if self.local_db.hkeys(hashname + ":Logs")[0] == "Disconnected":
+            if self.local_db.hvals(hashname + ":Logs")[0].decode() == "Disconnected":
                 self.log_remote(hashname + ":Logs", "Connected (logged by server)", now)
         return 0
 
