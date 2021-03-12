@@ -425,6 +425,27 @@
               </widget>
              </item>
              <item>
+              <widget class="QDateTimeEdit" name="fromTimeEdit">
+               <property name="minimumDateTime">
+                <datetime>
+                 <hour>0</hour>
+                 <minute>0</minute>
+                 <second>0</second>
+                 <year>2021</year>
+                 <month>1</month>
+                 <day>1</day>
+                </datetime>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="toLabel">
+               <property name="text">
+                <string>To</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <widget class="QDateTimeEdit" name="toTimeEdit">
                <property name="date">
                 <date>
@@ -446,26 +467,8 @@
                <property name="currentSectionIndex">
                 <number>0</number>
                </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="toLabel">
-               <property name="text">
-                <string>To</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QDateTimeEdit" name="fromTimeEdit">
-               <property name="minimumDateTime">
-                <datetime>
-                 <hour>0</hour>
-                 <minute>0</minute>
-                 <second>0</second>
-                 <year>2021</year>
-                 <month>1</month>
-                 <day>1</day>
-                </datetime>
+               <property name="timeSpec">
+                <enum>Qt::LocalTime</enum>
                </property>
               </widget>
              </item>
@@ -483,6 +486,9 @@
            </item>
            <item>
             <widget class="QTableView" name="logsTable">
+             <property name="selectionBehavior">
+              <enum>QAbstractItemView::SelectRows</enum>
+             </property>
              <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
               <bool>false</bool>
              </attribute>
