@@ -3,7 +3,7 @@ import redis
 import time
 import subprocess
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import os
 import sys
@@ -94,11 +94,14 @@ class RedisServer:
                 self.logger.error("No BBBread Server found")
                 raise Exception("No BBBread Server found")
 
-    def get_logs(self, hashname):
-        return [
+    def get_logs(self, hashname=None):
+        
+        if hashname: 
+            return [
             [key.decode("utf-8"), value.decode("utf-8")]
-            for key, value in self.local_db.hgetall(hashname).items()
-        ]
+            for key, value in self.local_db.hgetall(hashname).items()]
+        else:
+            return [name.decode("utf-8") for name in self.local_db.keys("BBB:*:Logs")]
 
     # TODO: Change function name
     def list_connected(self, ip="", hostname=""):
@@ -170,7 +173,7 @@ class RedisServer:
     def bbb_state(self, hashname: str):
         """Verifies if node is active. Ping time inferior to 15 seconds
         Zero if active node, One if disconnected and Two if moved to other hash"""
-        now = datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
+        now = (datetime.now()-timedelta(hours=3)).strftime("%d/%m/%Y-%H:%M:%S")
 
         last_ping = float(self.local_db.hget(hashname, "ping_time").decode())
         time_since_ping = time.time() - last_ping

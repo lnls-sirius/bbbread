@@ -1,6 +1,6 @@
 """Alter REDIS_HOST to your host's IP"""
 
-import sys
+import sys, datetime
 from time import sleep, localtime, strftime, strptime, mktime
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
@@ -60,7 +60,7 @@ class UpdateNodesThread(QtCore.QThread):
 class UpdateLogsThread(QtCore.QThread):
     received = QtCore.pyqtSignal(list)
 
-    def __init__(self, server, hostname):
+    def __init__(self, server, hostname=None):
         QtCore.QThread.__init__(self)
         self.server = server
         self.hostname = hostname
@@ -69,10 +69,28 @@ class UpdateLogsThread(QtCore.QThread):
         self.wait()
 
     def run(self):
-        while True:
-            logs = self.server.get_logs(self.hostname)
-            self.received.emit(logs)
-            sleep(10)
+        if self.hostname:
+            while True:
+                logs = self.server.get_logs(self.hostname)
+                self.received.emit(logs)
+                sleep(10)
+        else:
+            while True:
+                log_names = self.server.get_logs()
+                all_logs = []
+                for name in log_names:
+                    bbb_logs = []
+                    bbb_logs = self.server.get_logs(name)
+                    for l in bbb_logs:
+                        l.insert(1,name[4:]) 
+
+                    all_logs.extend(bbb_logs)
+
+                all_logs = sorted(all_logs,key=lambda x: mktime(strptime(x[0], "%d/%m/%Y-%H:%M:%S")), reverse=True)
+
+                self.received.emit(all_logs)
+                sleep(10)
+
 
 
 class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
@@ -119,6 +137,11 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
         # Threading
         self.nodes_thread = UpdateNodesThread(self.server)
         self.nodes_thread.finished.connect(self.update_node_list)
+        self.logs_thread = UpdateLogsThread(self.server)
+        self.logs_thread.received.connect(self.update_logs_list)
+        
+        self.logs_model = TableModel([[]], all=True)
+        self.logsTable.setModel(self.logs_model)
 
     def update_nodes(self):
         """Updates list of BBBs shown"""
@@ -126,6 +149,12 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
         # self.loadingLabel.show()
         if not self.nodes_thread.isRunning():
             self.nodes_thread.start()
+
+        if not self.logs_thread.isRunning():
+            self.logs_thread.start()
+
+    def update_logs_list(self, logs):
+        self.logs_model.set_data(logs)
 
     def update_node_list(self, nodes):
         self.nodes, self.nodes_info = nodes
@@ -313,6 +342,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
             else:
                 self.configButton.setEnabled(False)
                 self.infoButton.setEnabled(False)
+                self.logsButton.setEnabled(False)
             if current_tab == SERVICE_TAB:
                 self.applyserviceButton.setEnabled(True)
             else:
@@ -513,10 +543,10 @@ class BBBInfo(QtWidgets.QWidget, Ui_MainWindow_info):
 
 class TableModel(QtCore.QAbstractTableModel):
     # Display model for TableView
-    def __init__(self, data):
+    def __init__(self, data, all=False):
         super(TableModel, self).__init__()
         self._data = data
-        self._header = ["Timestamp", "Occurence"]
+        self._header = ["Timestamp", "BBB", "Occurence"] if all else ["Timestamp", "Occurence"]
 
     def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
         if role == QtCore.Qt.DisplayRole and orientation == QtCore.Qt.Horizontal:
@@ -555,7 +585,6 @@ class BBBLogs(QtWidgets.QWidget, Ui_MainWindow_logs):
 
         self.model = TableModel([[]])
         self.logsTable.setModel(self.model)
-        self.logsTable.horizontalHeader().setStretchLastSection(True)
 
         self.fromTimeEdit.dateTimeChanged.connect(self.update_time_window)
         self.toTimeEdit.dateTimeChanged.connect(self.update_time_window)
