@@ -187,7 +187,7 @@ class RedisServer:
                 self.local_db.hset(hashname, "state_string", "Disconnected")
             return 1
         if len(self.local_db.hvals(hashname + ":Logs")) > 0:
-            known_status = self.local_db.hvals(hashname + ":Logs")[len-1].decode()
+            known_status = self.local_db.hvals(hashname + ":Logs")[-1].decode()
             if known_status == "Disconnected" or known_status == hashname and time_since_ping > 60:
                 self.log_remote(hashname + ":Logs", "Reconnected (logged by server)", int(now))
         return 0
