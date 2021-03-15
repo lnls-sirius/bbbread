@@ -307,12 +307,12 @@ class RedisClient:
         self.logger.debug("Starting BBBread up")
 
         # Defining local and remote database
-        self.local_db = redis.StrictRedis(host="127.0.0.1", port=6379, socket_timeout=2)
+        self.local_db = redis.StrictRedis(host="127.0.0.1", port=6379, socket_timeout=4)
         self.remote_db_1 = redis.StrictRedis(
-            host=remote_host_1, port=6379, socket_timeout=2
+            host=remote_host_1, port=6379, socket_timeout=4
         )
         self.remote_db_2 = redis.StrictRedis(
-            host=remote_host_2, port=6379, socket_timeout=2
+            host=remote_host_2, port=6379, socket_timeout=4
         )
         self.logger.debug("Searching for active database")
         self.remote_db = self.find_active()
@@ -476,6 +476,11 @@ class RedisClient:
                         )
                         subprocess.check_output(["systemctl", "restart", service_name])
 
+            except redis.exceptions.TimeoutError:
+                self.logger.error("Reconnecting to Redis server\n{}".format(e))
+                time.sleep(1)
+                self.find_active()
+                continue
             except Exception as e:
                 self.logger.error("Listening Thread died:\n{}".format(e))
                 self.log_remote("Listening Thread died: {}".format(e), now)
@@ -520,8 +525,9 @@ class RedisClient:
         if log:
             self.logger.info("updating remote db")
         status = self.remote_db.hget(self.hashname, "state_string")
-        if status != None and status.decode() == "Disconnected":
-            last_ping = float(self.local_db.hget(self.hashname, "ping_time").decode())
+        raw_ping = self.local_db.hget(self.hashname, "ping_time")
+        if status != None and raw_ping != None and status.decode() == "Disconnected":
+            last_ping = float(raw_ping.decode())
             time_since_ping = int(time.time()) - last_ping
             if time_since_ping > 60:
                 now = int(time.time())-10800
