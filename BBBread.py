@@ -343,16 +343,19 @@ class RedisClient:
         self.logger.debug("Listening thread started")
         self.logger.debug("BBBread startup completed")
         self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
+        self.server_connected = False
 
     def find_active(self):
         try:
             self.remote_db_1.ping()
             self.logger.debug("Connected to LA-RaCtrl-CO-Srv-1 Redis Server")
+            self.server_connected = True
             return self.remote_db_1
         except redis.exceptions.ConnectionError:
             try:
                 self.remote_db_2.ping()
                 self.logger.debug("Connected to CA-RaCtrl-CO-Srv-1 Redis Server")
+                self.server_connected = True
                 return self.remote_db_2
             except redis.exceptions.ConnectionError:
                 self.logger.critical("No remote database found")
@@ -361,7 +364,7 @@ class RedisClient:
     def ping_remote(self):
         """Thread that updates remote database every 10s, if pinging is enabled"""
         while True:
-            if not self.pinging:
+            if not self.pinging or not self.server_connected:
                 time.sleep(2)
                 continue
             try:
@@ -517,8 +520,8 @@ class RedisClient:
         if log:
             self.logger.info("updating remote db")
         status = self.remote_db.hget(self.hashname, "state_string")
-        if status and status.decode() == "Disconnected":
-            last_ping = float(self.local_db.hget(hashname, "ping_time").decode())
+        if status != None and status.decode() == "Disconnected":
+            last_ping = float(self.local_db.hget(self.hashname, "ping_time").decode())
             time_since_ping = int(time.time()) - last_ping
             if time_since_ping > 60:
                 now = int(time.time())-10800
