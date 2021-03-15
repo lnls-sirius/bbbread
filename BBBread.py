@@ -176,7 +176,7 @@ class RedisServer:
         now = time.time()
 
         last_ping = float(self.local_db.hget(hashname, "ping_time").decode())
-        time_since_ping = int(time.time()) - last_ping
+        time_since_ping = time.time() - last_ping
         node_state = self.local_db.hget(hashname, "state_string").decode()
         if node_state[:3] == "BBB":
             return 2
@@ -186,8 +186,10 @@ class RedisServer:
                     self.log_remote(hashname + ":Logs", "Disconnected", int(now))
                 self.local_db.hset(hashname, "state_string", "Disconnected")
             return 1
-        if len(self.local_db.hvals(hashname + ":Logs")) > 0 and self.local_db.hvals(hashname + ":Logs")[len-1].decode() == "Disconnected" and time_since_ping > 60:
-            self.log_remote(hashname + ":Logs", "Reconnected (logged by server)", int(now))
+        if len(self.local_db.hvals(hashname + ":Logs")) > 0:
+            known_status = self.local_db.hvals(hashname + ":Logs")[len-1].decode()
+            if known_status == "Disconnected" or known_status == hashname and time_since_ping > 60:
+                self.log_remote(hashname + ":Logs", "Reconnected (logged by server)", int(now))
         return 0
 
     def delete_bbb(self, hashname: str):
@@ -384,15 +386,19 @@ class RedisClient:
             if not self.listening:
                 time.sleep(2)
                 continue
-                time.sleep(1)
-                now = int(time.time())-10800
-                self.command_listname = self.hashname + ":Command"
+
+            time.sleep(1)
+            now = int(time.time())-10800
+            self.command_listname = self.hashname + ":Command"
+            command = []
 
             try:
                 if self.remote_db.keys(self.command_listname):
                     command = self.remote_db.lpop(self.command_listname).decode()
                     command = command.split(";")
                     command[0] = int(command[0])
+                else:
+                    continue
             except redis.exceptions.TimeoutError:
                 self.logger.error("Reconnecting to Redis server")
                 time.sleep(1)
@@ -526,17 +532,18 @@ class RedisClient:
         # Updates remote hash
         if log:
             self.logger.info("updating remote db")
-        status = self.remote_db.hget(self.hashname, "state_string")
-        raw_ping = self.local_db.hget(self.hashname, "ping_time")
-        if status != None and raw_ping != None and status.decode() == "Disconnected":
-            last_ping = float(raw_ping.decode())
-            time_since_ping = int(time.time()) - last_ping
-            if time_since_ping > 60:
-                now = int(time.time())-10800
-                self.log_remote("Reconnected", now)
+        raw_ping = self.remote_db.hget(self.hashname, "ping_time")
+
         self.remote_db.hmset(self.hashname, info)
         self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
         self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
+
+        if raw_ping != None:
+            last_ping = float(raw_ping.decode())
+            time_since_ping = time.time() - last_ping
+            if time_since_ping > 60:
+                now = int(time.time())-10800
+                self.log_remote("Reconnected", now)
 
 
 if __name__ == "__main__":
