@@ -1,6 +1,6 @@
 """Alter REDIS_HOST to your host's IP"""
 
-import sys, copy
+import sys
 from datetime import datetime
 from time import sleep, localtime, strftime, strptime
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
@@ -212,10 +212,12 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
 
         data = [[datetime.utcfromtimestamp(int(l[0])).strftime('%d/%m/%Y %H:%M:%S'), l[1], l[2]] for l in logs]
 
-        if not self.commandsCheckBox.isChecked():
-            data = [l for l in data if 'connected' in l[2].lower() or 'hostname' in l[2].lower()]
-
-        if not self.threadCheckBox.isChecked():
+        if self.threadCheckBox.isChecked():
+            if not self.commandsCheckBox.isChecked():
+                data = [l for l in data if 'connected' in l[2].lower() or 'hostname' in l[2].lower() or 'thread died' in l[2].lower()]
+        else:
+            if not self.commandsCheckBox.isChecked():
+                data = [l for l in data if 'connected' in l[2].lower() or 'hostname' in l[2].lower()]
             data = [l for l in data if 'thread died' not in l[2].lower()]
 
         self.logs_model.set_data(data)
