@@ -473,9 +473,16 @@
               </widget>
              </item>
              <item>
+              <widget class="QCheckBox" name="threadCheckBox">
+               <property name="text">
+                <string>Thread Info</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <widget class="QCheckBox" name="commandsCheckBox">
                <property name="text">
-                <string>Show Commands</string>
+                <string>Commands</string>
                </property>
                <property name="checked">
                 <bool>true</bool>

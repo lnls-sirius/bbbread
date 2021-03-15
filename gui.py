@@ -142,6 +142,8 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
         self.infoButton.clicked.connect(self.show_node_info)
         self.applyserviceButton.clicked.connect(self.service_application)
         self.logsButton.clicked.connect(self.display_logs)
+        self.threadCheckBox.stateChanged.connect(self.update_filters)
+        self.commandsCheckBox.stateChanged.connect(self.update_filters)
 
         # Threading
         self.nodes_thread = UpdateNodesThread(self.server)
@@ -209,6 +211,12 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
             return
 
         data = [[datetime.utcfromtimestamp(int(l[0])).strftime('%d/%m/%Y %H:%M:%S'), l[1], l[2]] for l in logs]
+
+        if not self.commandsCheckBox.isChecked():
+            data = [l for l in data if 'connected' in l[2].lower() or 'hostname' in l[2].lower()]
+
+        if not self.threadCheckBox.isChecked():
+            data = [l for l in data if 'thread died' not in l[2].lower()]
 
         self.logs_model.set_data(data)
 

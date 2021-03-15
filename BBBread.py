@@ -182,11 +182,11 @@ class RedisServer:
             return 2
         elif time_since_ping >= 11:
             if node_state != "Disconnected":
-                if time_since_ping > 90:
+                if time_since_ping > 60:
                     self.log_remote(hashname + ":Logs", "Disconnected", int(now))
                 self.local_db.hset(hashname, "state_string", "Disconnected")
             return 1
-        if len(self.local_db.hvals(hashname + ":Logs")) > 0 and self.local_db.hvals(hashname + ":Logs")[len-1].decode() == "Disconnected" and time_since_ping > 90:
+        if len(self.local_db.hvals(hashname + ":Logs")) > 0 and self.local_db.hvals(hashname + ":Logs")[len-1].decode() == "Disconnected" and time_since_ping > 60:
             self.log_remote(hashname + ":Logs", "Reconnected (logged by server)", int(now))
         return 0
 
@@ -518,8 +518,11 @@ class RedisClient:
             self.logger.info("updating remote db")
         status = self.remote_db.hget(self.hashname, "state_string")
         if status and status.decode() == "Disconnected":
-            now = int(time.time())-10800
-            self.log_remote("Reconnected", now)
+            last_ping = float(self.local_db.hget(hashname, "ping_time").decode())
+            time_since_ping = int(time.time()) - last_ping
+            if time_since_ping > 60:
+                now = int(time.time())-10800
+                self.log_remote("Reconnected", now)
         self.remote_db.hmset(self.hashname, info)
         self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
         self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
