@@ -176,21 +176,22 @@ class RedisServer:
         now = time.time()
 
         last_ping = float(self.local_db.hget(hashname, "ping_time").decode())
-        time_since_ping = time.time() - last_ping
+        time_since_ping = now - last_ping
         node_state = self.local_db.hget(hashname, "state_string").decode()
         last_logs = self.local_db.hvals(hashname + ":Logs")
         if node_state[:3] == "BBB":
             return 2
         elif time_since_ping >= 11:
+            if time_since_ping > 60 and (len(last_logs) < 1 or last_logs[-1].decode() != "Disconnected"):
+                    self.log_remote(hashname + ":Logs", "Disconnected", int(now)-10800)
+
             if node_state != "Disconnected":
-                if time_since_ping > 60 and last_logs and last_logs[-1].decode() != "Disconnected":
-                    self.log_remote(hashname + ":Logs", "Disconnected", int(now))
                 self.local_db.hset(hashname, "state_string", "Disconnected")
             return 1
         if last_logs:
             known_status = last_logs[-1].decode()
             if known_status == "Disconnected" or known_status == hashname and time_since_ping > 60:
-                self.log_remote(hashname + ":Logs", "Reconnected (logged by server)", int(now))
+                self.log_remote(hashname + ":Logs", "Reconnected", int(now)-10800)
         return 0
 
     def delete_bbb(self, hashname: str):
@@ -538,14 +539,6 @@ class RedisClient:
         self.remote_db.hmset(self.hashname, info)
         self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
         self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
-
-        if raw_ping != None:
-            last_ping = float(raw_ping.decode())
-            time_since_ping = time.time() - last_ping
-            if time_since_ping > 60:
-                now = int(time.time())-10800
-                self.log_remote("Reconnected", now)
-
 
 if __name__ == "__main__":
     sys.exit()
