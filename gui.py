@@ -206,11 +206,13 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
         self.update_table(data, update=False)
 
     def update_table(self, logs, update=True):
+        """Updates content of logs table"""
         if update:
             self.data = logs
             self.update_filters()
             return
 
+        # Formats timestamp in human readable form
         data = [
             [
                 datetime.utcfromtimestamp(int(l[0])).strftime("%d/%m/%Y %H:%M:%S"),
@@ -220,6 +222,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
             for l in logs
         ]
 
+        # Filters out thread statuses and commands (if boxes aren't checked)
         if self.threadCheckBox.isChecked():
             if not self.commandsCheckBox.isChecked():
                 data = [
@@ -241,6 +244,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
         self.logs_model.set_data(data)
 
     def update_node_list(self, nodes):
+        """Gets updated node list and applies it to all lists"""
         self.nodes, self.nodes_info = nodes
         connected_number = 0
 
