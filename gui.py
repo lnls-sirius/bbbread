@@ -154,7 +154,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
     def update_nodes(self):
         """Updates list of BBBs shown"""
         # Stores every BBB information
-        self.loadingLabel.show()
+        #self.loadingLabel.show() Could get annoying 
         if not self.nodes_thread.isRunning():
             self.nodes_thread.start()
 
