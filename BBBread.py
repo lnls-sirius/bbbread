@@ -318,6 +318,8 @@ class RedisClient:
         self.remote_db_2 = redis.StrictRedis(
             host=remote_host_2, port=6379, socket_timeout=4
         )
+        self.server_connected = False
+        
         self.logger.debug("Searching for active database")
         self.remote_db = self.find_active()
 
