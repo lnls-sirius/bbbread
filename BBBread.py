@@ -347,7 +347,6 @@ class RedisClient:
         self.logger.debug("Listening thread started")
         self.logger.debug("BBBread startup completed")
         self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
-        self.server_connected = False
 
     def find_active(self):
         try:
