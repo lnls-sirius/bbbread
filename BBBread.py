@@ -3,7 +3,6 @@ import redis
 import time
 import subprocess
 import logging
-from datetime import datetime, timedelta
 
 import os
 import sys
@@ -95,11 +94,12 @@ class RedisServer:
                 raise Exception("No BBBread Server found")
 
     def get_logs(self, hashname=None):
-        
-        if hashname: 
+
+        if hashname:
             return [
-            [key.decode("utf-8"), value.decode("utf-8")]
-            for key, value in self.local_db.hgetall(hashname).items()]
+                [key.decode("utf-8"), value.decode("utf-8")]
+                for key, value in self.local_db.hgetall(hashname).items()
+            ]
         else:
             return [name.decode("utf-8") for name in self.local_db.keys("BBB:*:Logs")]
 
@@ -182,16 +182,22 @@ class RedisServer:
         if node_state[:3] == "BBB":
             return 2
         elif time_since_ping >= 11:
-            if time_since_ping > 60 and (len(last_logs) < 1 or last_logs[-1].decode() != "Disconnected"):
-                    self.log_remote(hashname + ":Logs", "Disconnected", int(now)-10800)
+            if time_since_ping > 60 and (
+                len(last_logs) < 1 or last_logs[-1].decode() != "Disconnected"
+            ):
+                self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
 
             if node_state != "Disconnected":
                 self.local_db.hset(hashname, "state_string", "Disconnected")
             return 1
         if last_logs:
             known_status = last_logs[-1].decode()
-            if known_status == "Disconnected" or known_status == hashname and time_since_ping > 60:
-                self.log_remote(hashname + ":Logs", "Reconnected", int(now)-10800)
+            if (
+                known_status == "Disconnected"
+                or known_status == hashname
+                and time_since_ping > 60
+            ):
+                self.log_remote(hashname + ":Logs", "Reconnected", int(now) - 10800)
         return 0
 
     def delete_bbb(self, hashname: str):
@@ -319,7 +325,7 @@ class RedisClient:
             host=remote_host_2, port=6379, socket_timeout=4
         )
         self.server_connected = False
-        
+
         self.logger.debug("Searching for active database")
         self.remote_db = self.find_active()
 
@@ -376,7 +382,7 @@ class RedisClient:
                 self.force_update()
                 time.sleep(10)
             except Exception as e:
-                now = int(time.time())-10800
+                now = int(time.time()) - 10800
                 self.logger.error("Pinging Thread died:\n{}".format(e))
                 self.log_remote("Pinging Thread died: {}".format(e), now)
                 time.sleep(1)
@@ -391,7 +397,7 @@ class RedisClient:
                 continue
 
             time.sleep(1)
-            now = int(time.time())-10800
+            now = int(time.time()) - 10800
             self.command_listname = self.hashname + ":Command"
             command = []
 
@@ -430,9 +436,7 @@ class RedisClient:
                 self.bbb.update_hostname(new_hostname)
                 # Updates variable names
                 self.logger.info("Hostname changed to " + new_hostname)
-                self.log_remote(
-                    "Hostname changed to {}".format(new_hostname), now
-                )
+                self.log_remote("Hostname changed to {}".format(new_hostname), now)
                 self.listening = False
 
             elif command[0] == Command.SET_IP:
@@ -442,9 +446,7 @@ class RedisClient:
                     new_ip = command[2]
                     new_mask = command[3]
                     new_gateway = command[4]
-                    self.bbb.update_ip_address(
-                        ip_type, new_ip, new_mask, new_gateway
-                    )
+                    self.bbb.update_ip_address(ip_type, new_ip, new_mask, new_gateway)
                     # Updates variable names
                     info = "IP manually changed to {}, netmask {}, gateway {}".format(
                         new_ip, new_mask, new_gateway
@@ -466,14 +468,10 @@ class RedisClient:
                 nameserver_1 = command[1]
                 nameserver_2 = command[2]
                 self.logger.info(
-                    "Nameservers changed: {}, {}".format(
-                        nameserver_1, nameserver_2
-                    )
+                    "Nameservers changed: {}, {}".format(nameserver_1, nameserver_2)
                 )
                 self.log_remote(
-                    "Nameservers changed: {}, {}".format(
-                        nameserver_1, nameserver_2
-                    ),
+                    "Nameservers changed: {}, {}".format(nameserver_1, nameserver_2),
                     now,
                 )
                 self.bbb.update_nameservers(nameserver_1, nameserver_2)
@@ -491,9 +489,7 @@ class RedisClient:
                 if service_name == "bbbread":
                     self.logger.warning("Restarting BBBread")
                 self.logger.info("{} service restarted".format(service_name))
-                self.log_remote(
-                    "{} service restarted".format(service_name), now
-                )
+                self.log_remote("{} service restarted".format(service_name), now)
                 subprocess.check_output(["systemctl", "restart", service_name])
 
     def log_remote(self, message, date):
@@ -535,11 +531,11 @@ class RedisClient:
         # Updates remote hash
         if log:
             self.logger.info("updating remote db")
-        raw_ping = self.remote_db.hget(self.hashname, "ping_time")
 
         self.remote_db.hmset(self.hashname, info)
         self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
         self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
+
 
 if __name__ == "__main__":
     sys.exit()

@@ -2,7 +2,7 @@
 
 import sys
 from datetime import datetime
-from time import sleep, localtime, strftime, strptime
+from time import sleep, localtime, strftime
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
 from BBBread import RedisServer
@@ -81,7 +81,7 @@ class UpdateLogsThread(QtCore.QThread):
                 bbb_logs = []
                 bbb_logs = self.server.get_logs(name)
                 for l in bbb_logs:
-                    l.insert(1, name[4 : name.index(":Logs")])
+                    l.insert(1, name[4:name.index(":Logs")])
 
                 all_logs.extend(bbb_logs)
 
@@ -154,7 +154,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
     def update_nodes(self):
         """Updates list of BBBs shown"""
         # Stores every BBB information
-        #self.loadingLabel.show() Could get annoying 
+        # self.loadingLabel.show() Could get annoying
         if not self.nodes_thread.isRunning():
             self.nodes_thread.start()
 
@@ -306,7 +306,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
                 node_state = info[b"state_string"].decode()
                 node_details = info[b"details"].decode()
                 node_string = "{} - {}".format(node_ip, node_name)
-            except Exception as e:
+            except Exception:
                 # print(e)
                 continue
             # Increments Connected Number of BBBs if beagle is connected
