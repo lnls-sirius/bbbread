@@ -243,7 +243,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
 
         self.logs_model.set_data(data)
 
-    def update_node_list(self, nodes):
+    def update_node_list(self, nodes):  # noqa: C901
         """Gets updated node list and applies it to all lists"""
         self.nodes, self.nodes_info = nodes
         connected_number = 0

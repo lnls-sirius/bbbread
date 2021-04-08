@@ -3,13 +3,5 @@ max-line-length = 119
 max-complexity = 18
 exclude =
     .git,
-    __pycache__,
-    Data,
-    Docker,
-    Old,
-    *.log,
-    README.md,
-    FileUI/main_ui.py
-    FileUI/login.py
-    EPICSTel/static_text.py
-ignore=W503, C901, E741
+    __pycache__
+ignore=W503, E741
