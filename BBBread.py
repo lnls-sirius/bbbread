@@ -283,7 +283,7 @@ class RedisClient:
         self.logger = logging.getLogger("bbbread")
         self.logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter("%(levelname)s:%(asctime)s:%(name)s:%(message)s")
-        file_handler = RotatingFileHandler(data_file, maxBytes=15000000, backupCount=5)
+        file_handler = RotatingFileHandler(log_path, maxBytes=15000000, backupCount=5)
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
 
