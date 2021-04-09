@@ -326,20 +326,24 @@ class RedisClient:
         self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
 
     def find_active(self):
-        try:
-            self.remote_db_1.ping()
-            self.logger.debug("Connected to LA-RaCtrl-CO-Srv-1 Redis Server")
-            self.server_connected = True
-            return self.remote_db_1
-        except redis.exceptions.ConnectionError:
+        while True:
             try:
-                self.remote_db_2.ping()
-                self.logger.debug("Connected to CA-RaCtrl-CO-Srv-1 Redis Server")
+                self.remote_db_1.ping()
+                self.logger.debug("Connected to LA-RaCtrl-CO-Srv-1 Redis Server")
                 self.server_connected = True
-                return self.remote_db_2
+                return self.remote_db_1
             except redis.exceptions.ConnectionError:
-                self.logger.critical("No remote database found")
-                raise Exception("No remote database found")
+                try:
+                    self.remote_db_2.ping()
+                    self.logger.debug("Connected to CA-RaCtrl-CO-Srv-1 Redis Server")
+                    self.server_connected = True
+                    return self.remote_db_2
+                except redis.exceptions.ConnectionError:
+                    self.logger.critical("No remote database found")
+                    raise Exception("No remote database found")
+            self.logger.info("Server not found. Retrying to connect in 10 seconds...")
+            time.sleep(10)
+            
 
     def ping_remote(self):
         """Thread that updates remote database every 10s, if pinging is enabled"""
