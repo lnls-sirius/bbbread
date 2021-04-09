@@ -11,4 +11,3 @@ update_local_db()
 client = RedisClient()
 while True:
     time.sleep(10)
-

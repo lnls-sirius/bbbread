@@ -64,3 +64,10 @@ systemctl enable bbbread
 
 For more information read the [wiki-sirius page](https://wiki-sirius.lnls.br/mediawiki/index.php/CON:BBBread).
 
+## UI
+
+![Main Interface](Screenshots/main.png)
+![Logs tab](Screenshots/logs_tab.png)
+![Logs](Screenshots/logs.png)
+![Config](Screenshots/config.png)
+![Info](Screenshots/info.png)
