@@ -74,17 +74,13 @@ class RedisServer:
         self.logger.debug("Starting up BBBread Server")
 
         # Probably connecting to a existing server, tries to connect to primary server
-        self.local_db = redis.StrictRedis(
-            host=LA_SERVER_IP, port=6379, socket_timeout=2
-        )
+        self.local_db = redis.StrictRedis(host=LA_SERVER_IP, port=6379, socket_timeout=2)
         try:
             self.local_db.ping()
             self.logger.debug("Connected to LA-RaCtrl-CO-Srv-1 Redis Server")
         # If primary server is not available, tries to connect to backup server
         except redis.exceptions.ConnectionError:
-            self.local_db = redis.StrictRedis(
-                host=CA_SERVER_IP, port=6379, socket_timeout=2
-            )
+            self.local_db = redis.StrictRedis(host=CA_SERVER_IP, port=6379, socket_timeout=2)
             try:
                 self.local_db.ping()
                 self.logger.debug("Connected to CA-RaCtrl-CO-Srv-1 Redis Server")
@@ -97,8 +93,7 @@ class RedisServer:
 
         if hashname:
             return [
-                [key.decode("utf-8"), value.decode("utf-8")]
-                for key, value in self.local_db.hgetall(hashname).items()
+                [key.decode("utf-8"), value.decode("utf-8")] for key, value in self.local_db.hgetall(hashname).items()
             ]
         else:
             return [name.decode("utf-8") for name in self.local_db.keys("BBB:*:Logs")]
@@ -156,18 +151,12 @@ class RedisServer:
                 check = self.local_db.rpush(bbb_command_listname, command)
                 return bool(check)
             elif len(bbb_hashname) < 1:
-                self.logger.error(
-                    "no node found with the specified IP and hostname:" + ip + hostname
-                )
+                self.logger.error("no node found with the specified IP and hostname:" + ip + hostname)
             else:
-                self.logger.error(
-                    "two or more nodes found with the specified ip, please specify a hostname"
-                )
+                self.logger.error("two or more nodes found with the specified ip, please specify a hostname")
             return False
         except Exception as e:
-            self.logger.error(
-                "A fatal error occurred while sending the command:\n{}".format(e)
-            )
+            self.logger.error("A fatal error occurred while sending the command:\n{}".format(e))
             return False
 
     def bbb_state(self, hashname: str):
@@ -182,9 +171,7 @@ class RedisServer:
         if node_state[:3] == "BBB":
             return 2
         elif time_since_ping >= 11:
-            if time_since_ping > 60 and (
-                len(last_logs) < 1 or last_logs[-1].decode() != "Disconnected"
-            ):
+            if time_since_ping > 60 and (len(last_logs) < 1 or last_logs[-1].decode() != "Disconnected"):
                 self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
 
             if node_state != "Disconnected":
@@ -192,11 +179,7 @@ class RedisServer:
             return 1
         if last_logs:
             known_status = last_logs[-1].decode()
-            if (
-                known_status == "Disconnected"
-                or known_status == hashname
-                and time_since_ping > 60
-            ):
+            if known_status == "Disconnected" or known_status == hashname and time_since_ping > 60:
                 self.log_remote(hashname + ":Logs", "Reconnected", int(now) - 10800)
         return 0
 
@@ -204,9 +187,7 @@ class RedisServer:
         """Removes a hash from redis database"""
         self.local_db.delete(hashname)
 
-    def change_hostname(
-        self, ip: str, new_hostname: str, current_hostname="", override=False
-    ):
+    def change_hostname(self, ip: str, new_hostname: str, current_hostname="", override=False):
         """Changes a BeagleBone Black hostname
         Returns false if an error occurs while sending the command or BBB isn't connected to Redis"""
         command = "{};{}".format(Command.SET_HOSTNAME, new_hostname)
@@ -216,18 +197,14 @@ class RedisServer:
             self.logger.info("{} NEW HOSTNAME - {}".format(ip, new_hostname))
         return check
 
-    def change_nameservers(
-        self, ip: str, nameserver_1: str, nameserver_2: str, hostname="", override=False
-    ):
+    def change_nameservers(self, ip: str, nameserver_1: str, nameserver_2: str, hostname="", override=False):
         """Changes a BeagleBone Black nameservers
         Returns false if an error occurs while sending the command or BBB isn't connected to Redis"""
         command = "{};{};{}".format(Command.SET_NAMESERVERS, nameserver_1, nameserver_2)
         check = self.send_command(ip, command, hostname, override)
         # If command is sent successfully logs hostname change
         if check:
-            self.logger.debug(
-                "{} NEW NAMESERVERS - {}  {}".format(ip, nameserver_1, nameserver_2)
-            )
+            self.logger.debug("{} NEW NAMESERVERS - {}  {}".format(ip, nameserver_1, nameserver_2))
         return check
 
     def change_ip(
@@ -318,12 +295,8 @@ class RedisClient:
 
         # Defining local and remote database
         self.local_db = redis.StrictRedis(host="127.0.0.1", port=6379, socket_timeout=4)
-        self.remote_db_1 = redis.StrictRedis(
-            host=remote_host_1, port=6379, socket_timeout=4
-        )
-        self.remote_db_2 = redis.StrictRedis(
-            host=remote_host_2, port=6379, socket_timeout=4
-        )
+        self.remote_db_1 = redis.StrictRedis(host=remote_host_1, port=6379, socket_timeout=4)
+        self.remote_db_2 = redis.StrictRedis(host=remote_host_2, port=6379, socket_timeout=4)
         self.server_connected = False
 
         self.logger.debug("Searching for active database")
@@ -332,15 +305,11 @@ class RedisClient:
         # Defining BBB object and formatting remote hash name as "BBB:IP_ADDRESS:HOSTNAME"
         self.bbb = BBB(path)
         update_local_db()
-        self.bbb_ip, self.bbb_hostname = self.local_db.hmget(
-            "device", "ip_address", "name"
-        )
+        self.bbb_ip, self.bbb_hostname = self.local_db.hmget("device", "ip_address", "name")
         self.bbb_ip = self.bbb_ip.decode()
         self.bbb_hostname = self.bbb_hostname.decode()
         self.hashname = "BBB:{}:{}".format(self.bbb_ip, self.bbb_hostname)
-        self.command_listname = "BBB:{}:{}:Command".format(
-            self.bbb_ip, self.bbb_hostname
-        )
+        self.command_listname = "BBB:{}:{}:Command".format(self.bbb_ip, self.bbb_hostname)
 
         # Pinging thread
         self.ping_thread = threading.Thread(target=self.ping_remote, daemon=True)
@@ -414,9 +383,7 @@ class RedisClient:
                 self.find_active()
                 continue
             except ValueError:
-                self.logger.error(
-                    "Failed to convert first part of the command to integer"
-                )
+                self.logger.error("Failed to convert first part of the command to integer")
                 continue
             except Exception as e:
                 self.logger.error("Listening Thread died:\n{}".format(e))
@@ -448,9 +415,7 @@ class RedisClient:
                     new_gateway = command[4]
                     self.bbb.update_ip_address(ip_type, new_ip, new_mask, new_gateway)
                     # Updates variable names
-                    info = "IP manually changed to {}, netmask {}, gateway {}".format(
-                        new_ip, new_mask, new_gateway
-                    )
+                    info = "IP manually changed to {}, netmask {}, gateway {}".format(new_ip, new_mask, new_gateway)
                     self.logger.info(info)
                     self.log_remote(info, now)
                     self.listening = False
@@ -467,9 +432,7 @@ class RedisClient:
             elif command[0] == Command.SET_NAMESERVERS and len(command) == 3:
                 nameserver_1 = command[1]
                 nameserver_2 = command[2]
-                self.logger.info(
-                    "Nameservers changed: {}, {}".format(nameserver_1, nameserver_2)
-                )
+                self.logger.info("Nameservers changed: {}, {}".format(nameserver_1, nameserver_2))
                 self.log_remote(
                     "Nameservers changed: {}, {}".format(nameserver_1, nameserver_2),
                     now,
@@ -515,9 +478,7 @@ class RedisClient:
             old_info[b"name"] = self.bbb_hostname
             old_info[b"ip_address"] = self.bbb_ip
             if self.remote_db.keys(old_hashname + ":Command"):
-                self.remote_db.rename(
-                    old_hashname + ":Command", self.hashname + ":Command"
-                )
+                self.remote_db.rename(old_hashname + ":Command", self.hashname + ":Command")
             if self.remote_db.keys(old_hashname + ":Logs"):
                 self.remote_db.rename(old_hashname + ":Logs", self.hashname + ":Logs")
 

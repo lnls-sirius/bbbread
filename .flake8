@@ -4,4 +4,4 @@ max-complexity = 18
 exclude =
     .git,
     __pycache__
-ignore=W503, E741
+ignore=W503

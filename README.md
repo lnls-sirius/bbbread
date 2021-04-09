@@ -66,8 +66,8 @@ For more information read the [wiki-sirius page](https://wiki-sirius.lnls.br/med
 
 ## UI
 
-![Main Interface](main.png)
-![Logs tab](logs_tab.png)
-![Logs](logs.png)
-![Config](config.png)
-![Info](info.png)
+![Main Interface](Screenshots/main.png)
+![Logs tab](Screenshots/logs_tab.png)
+![Logs](Screenshots/logs.png)
+![Config](Screenshots/config.png)
+![Info](Screenshots/info.png)
