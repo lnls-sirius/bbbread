@@ -151,10 +151,15 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
         self.fromTimeEdit.dateTimeChanged.connect(self.update_filters)
         self.filterEdit.textChanged.connect(self.update_log_text)
 
+        self.loading_icon = QtGui.QPixmap("./ui_files/Resources/led-red.png").scaledToHeight(20)
+        self.idle_icon = QtGui.QPixmap("./ui_files/Resources/led-green.png").scaledToHeight(20)
+
+        
+
     def update_nodes(self):
         """Updates list of BBBs shown"""
         # Stores every BBB information
-        # self.loadingLabel.show() Could get annoying
+        self.status_icon.setPixmap(self.loading_icon)
         if not self.nodes_thread.isRunning():
             self.nodes_thread.start()
 
@@ -404,7 +409,7 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
         # Updates the number of connected and listed nodes
         self.connectedLabel.setText("Connected nodes: {}".format(connected_number))
         self.listedLabel.setText("Listed: {}".format(list_name.count()))
-        self.loadingLabel.hide()
+        self.status_icon.setPixmap(self.idle_icon)
 
     @staticmethod
     def remove_faulty(node_string, list_name: QtWidgets.QListWidget, all_elements=True):
