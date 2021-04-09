@@ -67,10 +67,6 @@ class RedisServer:
         # Configuring logging
         self.logger = logging.getLogger("bbbreadServer")
         self.logger.setLevel(logging.DEBUG)
-        # formatter = logging.Formatter('%(levelname)s:%(asctime)s:%(name)s:%(message)s')
-        # file_handler = logging.FileHandler(log_path)
-        # file_handler.setFormatter(formatter)
-        # self.logger.addHandler(file_handler)
         self.logger.debug("Starting up BBBread Server")
 
         # Probably connecting to a existing server, tries to connect to primary server
@@ -287,7 +283,7 @@ class RedisClient:
         self.logger = logging.getLogger("bbbread")
         self.logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter("%(levelname)s:%(asctime)s:%(name)s:%(message)s")
-        file_handler = logging.FileHandler(log_path)
+        file_handler = RotatingFileHandler(data_file, maxBytes=15000000, backupCount=5)
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
 
@@ -343,7 +339,6 @@ class RedisClient:
                     raise Exception("No remote database found")
             self.logger.info("Server not found. Retrying to connect in 10 seconds...")
             time.sleep(10)
-            
 
     def ping_remote(self):
         """Thread that updates remote database every 10s, if pinging is enabled"""
