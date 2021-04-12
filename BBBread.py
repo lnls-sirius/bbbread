@@ -168,15 +168,14 @@ class RedisServer:
         if node_state[:3] == "BBB":
             return 2
         elif time_since_ping >= 11:
-            if time_since_ping > 60 and (len(last_logs) < 1 or last_logs[-1].decode() != "Disconnected"):
-                self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
-
             if node_state != "Disconnected":
                 self.local_db.hset(hashname, "state_string", "Disconnected")
+                if time_since_ping > 60:
+                    self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
             return 1
         if last_logs:
             known_status = last_logs[-1].decode()
-            if known_status == "Disconnected" or known_status == hashname and time_since_ping > 60:
+            if known_status == "Disconnected" or known_status == hashname:
                 self.log_remote(hashname + ":Logs", "Reconnected", int(now) - 10800)
         return 0
 
