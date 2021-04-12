@@ -13,6 +13,8 @@ if "armv7" in subprocess.check_output(["uname", "-a"]).decode():
     device = "bbb"
     sys.path.insert(0, "/root/bbb-function/src/scripts")
     from bbb import BBB
+
+    node = BBB(CONFIG_PATH)
 else:
     device = "server"
 
@@ -22,10 +24,10 @@ CONFIG_PATH = "/var/tmp/bbb.bin"
 LOG_PATH_SERVER = "bbbread.log"
 LOG_PATH_BBB = "/var/log/bbbread.log"
 
-node = BBB(CONFIG_PATH)
 
 def update_local_db():
     """Updates local redis database with device.json info"""
+    
     local_db = redis.StrictRedis(host="127.0.0.1", port=6379, socket_timeout=2)
     info = node.get_current_config()["n"]
     info["ping_time"] = str(time.time())
@@ -170,8 +172,7 @@ class RedisServer:
         elif time_since_ping >= 11:
             if node_state != "Disconnected":
                 self.local_db.hset(hashname, "state_string", "Disconnected")
-                if time_since_ping > 60:
-                    self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
+                self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
             return 1
         if last_logs:
             known_status = last_logs[-1].decode()
