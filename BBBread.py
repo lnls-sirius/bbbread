@@ -8,6 +8,12 @@ from logging.handlers import RotatingFileHandler
 import os
 import sys
 
+LA_SERVER_IP = "10.0.38.46"
+CA_SERVER_IP = "10.0.38.59"
+CONFIG_PATH = "/var/tmp/bbb.bin"
+LOG_PATH_SERVER = "bbbread.log"
+LOG_PATH_BBB = "/var/log/bbbread.log"
+
 # Verifies if device is a BBB
 if "armv7" in subprocess.check_output(["uname", "-a"]).decode():
     device = "bbb"
@@ -18,16 +24,10 @@ if "armv7" in subprocess.check_output(["uname", "-a"]).decode():
 else:
     device = "server"
 
-LA_SERVER_IP = "10.0.38.46"
-CA_SERVER_IP = "10.0.38.59"
-CONFIG_PATH = "/var/tmp/bbb.bin"
-LOG_PATH_SERVER = "bbbread.log"
-LOG_PATH_BBB = "/var/log/bbbread.log"
-
 
 def update_local_db():
     """Updates local redis database with device.json info"""
-    
+
     local_db = redis.StrictRedis(host="127.0.0.1", port=6379, socket_timeout=2)
     info = node.get_current_config()["n"]
     info["ping_time"] = str(time.time())
