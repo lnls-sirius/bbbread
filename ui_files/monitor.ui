@@ -49,7 +49,7 @@
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="15,1">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="15,0">
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <item>
@@ -785,27 +785,14 @@
            <property name="enabled">
             <bool>false</bool>
            </property>
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="text">
             <string>View Logs</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="infoButton">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="text">
-            <string>Info</string>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
-           </property>
-           <property name="default">
-            <bool>false</bool>
-           </property>
-           <property name="flat">
-            <bool>false</bool>
            </property>
           </widget>
          </item>
@@ -813,6 +800,12 @@
           <widget class="QPushButton" name="rebootButton">
            <property name="enabled">
             <bool>false</bool>
+           </property>
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
            </property>
            <property name="text">
             <string>Reboot Nodes</string>
@@ -829,9 +822,40 @@
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="infoButton">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Info</string>
+           </property>
+           <property name="autoDefault">
+            <bool>false</bool>
+           </property>
+           <property name="default">
+            <bool>false</bool>
+           </property>
+           <property name="flat">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="deleteButton">
            <property name="enabled">
             <bool>false</bool>
+           </property>
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
            </property>
            <property name="text">
             <string>Delete nodes from list</string>
@@ -851,6 +875,12 @@
           <widget class="QPushButton" name="configButton">
            <property name="enabled">
             <bool>false</bool>
+           </property>
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
            </property>
            <property name="text">
             <string>Configure Node</string>
@@ -874,20 +904,8 @@
    </item>
    <item>
     <widget class="QLabel" name="status_icon">
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>20</height>
-      </size>
-     </property>
-     <property name="layoutDirection">
-      <enum>Qt::LeftToRight</enum>
-     </property>
      <property name="text">
       <string/>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
      </property>
     </widget>
    </item>

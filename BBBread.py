@@ -22,10 +22,10 @@ CONFIG_PATH = "/var/tmp/bbb.bin"
 LOG_PATH_SERVER = "bbbread.log"
 LOG_PATH_BBB = "/var/log/bbbread.log"
 
+node = BBB(CONFIG_PATH)
 
 def update_local_db():
     """Updates local redis database with device.json info"""
-    node = BBB(CONFIG_PATH)
     local_db = redis.StrictRedis(host="127.0.0.1", port=6379, socket_timeout=2)
     info = node.get_current_config()["n"]
     info["ping_time"] = str(time.time())
