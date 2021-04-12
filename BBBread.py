@@ -169,7 +169,7 @@ class RedisServer:
         last_logs = self.local_db.hvals(hashname + ":Logs")
         if node_state[:3] == "BBB":
             return 2
-        elif time_since_ping >= 11:
+        elif time_since_ping >= 25:
             if node_state != "Disconnected":
                 self.local_db.hset(hashname, "state_string", "Disconnected")
                 self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
