@@ -491,6 +491,11 @@ class BBBreadMainWindow(QtWidgets.QWidget, Ui_MainWindow):
                     while self.Lock:
                         sleep(0.1)
                     self.nodes_info.pop(bbb_hashname)
+                    
+                    for i in selected_bbbs:
+                        self.basicList.takeItem(self.basicList.row(i))
+                        self.advancedList.takeItem(self.advancedList.row(i))
+                        self.serviceList.takeItem(self.serviceList.row(i))
                 except KeyError:
                     errors.append(bbb_hashname)
                     continue
