@@ -173,7 +173,7 @@ class RedisServer:
         last_logs = self.local_db.hvals(hashname + ":Logs")
         if node_state[:3] == "BBB":
             return 2
-        elif time_since_ping >= 25:
+        elif time_since_ping >= 13:
             if node_state != "Disconnected":
                 self.local_db.hset(hashname, "state_string", "Disconnected")
                 self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
@@ -353,7 +353,7 @@ class RedisClient:
                 continue
             try:
                 self.force_update()
-                time.sleep(10)
+                time.sleep(8)
             except Exception as e:
                 now = int(time.time()) - 10800
                 self.logger.error("Pinging Thread died:\n{}".format(e))
