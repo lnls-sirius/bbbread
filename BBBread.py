@@ -21,10 +21,10 @@ if "armv7" in subprocess.check_output(["uname", "-a"]).decode():
     from bbb import BBB
 
     try:
-        node = BBB(CONFIG_PATH)
+        node = BBB(path=CONFIG_PATH, logfile = LOG_PATH_BBB)
     except ModuleNotFoundError:
         CONFIG_PATH = "/var/tmp/nonexistentpath.bin"
-        node = BBB(CONFIG_PATH)  # Forces BBBread to use default configurations  
+        node = BBB(path=CONFIG_PATH, logfile = LOG_PATH_BBB)  # Forces BBBread to use default configurations  
 else:
     device = "server"
 
@@ -304,7 +304,7 @@ class RedisClient:
         self.remote_db = self.find_active()
 
         # Defining BBB object and formatting remote hash name as "BBB:IP_ADDRESS:HOSTNAME"
-        self.bbb = BBB(path)
+        self.bbb = BBB(path=path, logfile=log_path)
         update_local_db()
         self.bbb_ip, self.bbb_hostname = self.local_db.hmget("device", "ip_address", "name")
         self.bbb_ip = self.bbb_ip.decode()
