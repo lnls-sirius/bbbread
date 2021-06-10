@@ -55,7 +55,7 @@ def update_local_db():
 
 
 def timeout_hook(exctype, value, exctraceback):
-    if exctype == redis.exceptions.TimeoutError:
+    if exctype == redis.exceptions.TimeoutError or exctype == redis.exceptions.ConnectionError:
         print("Timeout reading from Redis database. Stopping thread for 5 seconds")
         time.sleep(5)
     elif exctype == NoRedisServerError:
