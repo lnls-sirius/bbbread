@@ -8,7 +8,7 @@ from logging.handlers import RotatingFileHandler
 import os
 import sys
 
-server_list = [
+SERVER_LIST = [
     "10.0.38.59",
     "10.0.38.46",
     "10.0.38.42",
@@ -33,13 +33,15 @@ if "armv7" in subprocess.check_output(["uname", "-a"]).decode():
     from bbb import BBB
 
     try:
-        node = BBB(path=CONFIG_PATH, logfile = LOG_PATH_BBB)
+        node = BBB(path=CONFIG_PATH, logfile=LOG_PATH_BBB)
     except ModuleNotFoundError:
         CONFIG_PATH = "/var/tmp/nonexistentpath.bin"
-        node = BBB(path=CONFIG_PATH, logfile = LOG_PATH_BBB)  # Forces BBBread to use default configurations  
+        node = BBB(path=CONFIG_PATH, logfile=LOG_PATH_BBB)  # Forces BBBread to use default configurations
 else:
     device = "server"
 
+class NoRedisServerError(Exception):
+    pass
 
 def update_local_db():
     """Updates local redis database with device.json info"""
@@ -50,6 +52,18 @@ def update_local_db():
 
     local_db.hmset("device", info)
     return info["ip_address"], info["name"]
+
+
+def timeout_hook(exctype, value, exctraceback):
+    if exctype == redis.exceptions.TimeoutError:
+        print("Timeout reading from Redis database. Stopping thread for 5 seconds")
+        time.sleep(5)
+    elif exctype == NoRedisServerError:
+        sys.exit("No Redis server found")
+    else:
+        import traceback
+        traceback.print_exception(exctype, value, exctraceback)
+        exit()
 
 
 class Command:
@@ -83,26 +97,28 @@ class RedisServer:
     """Runs on Control System's Server"""
 
     def __init__(self, log_path=LOG_PATH_SERVER):
+        # Global hook for Redis timeouts
+        sys.excepthook = timeout_hook
+
         # Configuring logging
         self.logger = logging.getLogger("bbbreadServer")
         self.logger.setLevel(logging.DEBUG)
         self.logger.debug("Starting up BBBread Server")
 
-        # Probably connecting to a existing server, tries to connect to primary server
-        self.local_db = redis.StrictRedis(host="127.0.0.1", port=6379, socket_timeout=2)
-        try:
-            self.local_db.ping()
-            self.logger.debug("Connected to LA-RaCtrl-CO-Srv-1 Redis Server")
-        # If primary server is not available, tries to connect to backup server
-        except redis.exceptions.ConnectionError:
-            self.local_db = redis.StrictRedis(host=CA_SERVER_IP, port=6379, socket_timeout=2)
+        connected = False
+        for server in SERVER_LIST[:3]:
+            self.local_db = redis.StrictRedis(host=server, port=6379, socket_timeout=2)
             try:
                 self.local_db.ping()
-                self.logger.debug("Connected to CA-RaCtrl-CO-Srv-1 Redis Server")
-            # Case no BBBread server is found
+                self.logger.debug("Connected to {} Redis Server".format(server))
+                connected = True
+                break
             except redis.exceptions.ConnectionError:
-                self.logger.error("No BBBread Server found")
-                raise Exception("No BBBread Server found")
+                self.logger.debug("{} Redis server is unavailable. Trying out next server".format(server))
+                continue
+
+        if not connected:
+            raise NoRedisServerError
 
     def get_logs(self, hashname=None):
 
@@ -336,7 +352,7 @@ class RedisClient:
 
     def find_active(self):
         while True:
-            for server in server_list:
+            for server in SERVER_LIST:
                 try:
                     remote_db = redis.StrictRedis(host=server, port=6379, socket_timeout=4)
                     remote_db.ping()

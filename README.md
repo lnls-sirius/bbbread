@@ -51,7 +51,8 @@ systemctl enable bbbread
 * BBBread: project's main Python module.
 * BBBread_Server: monitors Redis database for disconnected nodes.
 * BBBread_Client: runs on BBBs, pings server's Redis database.
-* gui: graphical user interface using pyQt.
+
+For the UI, visit [PyDM-OPI](https://github.com/lnls-sirius/pydm-opi)
 
 For more information read the [wiki-sirius page](https://wiki-sirius.lnls.br/mediawiki/index.php/CON:BBBread).
 
