@@ -8,8 +8,20 @@ from logging.handlers import RotatingFileHandler
 import os
 import sys
 
-LA_SERVER_IP = "10.0.38.46"
-CA_SERVER_IP = "10.0.38.59"
+server_list = [
+    "10.0.38.59",
+    "10.0.38.46",
+    "10.0.38.42",
+    "10.128.153.81",
+    "10.128.153.82",
+    "10.128.153.83",
+    "10.128.153.84",
+    "10.128.153.85",
+    "10.128.153.86",
+    "10.128.153.87",
+    "10.128.153.88",
+]
+
 CONFIG_PATH = "/var/tmp/bbb.bin"
 LOG_PATH_SERVER = "bbbread.log"
 LOG_PATH_BBB = "/var/log/bbbread.log"
@@ -73,7 +85,7 @@ class RedisServer:
         self.logger.debug("Starting up BBBread Server")
 
         # Probably connecting to a existing server, tries to connect to primary server
-        self.local_db = redis.StrictRedis(host=LA_SERVER_IP, port=6379, socket_timeout=2)
+        self.local_db = redis.StrictRedis(host="127.0.0.1", port=6379, socket_timeout=2)
         try:
             self.local_db.ping()
             self.logger.debug("Connected to LA-RaCtrl-CO-Srv-1 Redis Server")
@@ -276,8 +288,6 @@ class RedisClient:
     def __init__(
         self,
         path=CONFIG_PATH,
-        remote_host_1=LA_SERVER_IP,
-        remote_host_2=CA_SERVER_IP,
         log_path=LOG_PATH_BBB,
     ):
         # Configuring logging
@@ -292,8 +302,6 @@ class RedisClient:
 
         # Defining local and remote database
         self.local_db = redis.StrictRedis(host="127.0.0.1", port=6379, socket_timeout=4)
-        self.remote_db_1 = redis.StrictRedis(host=remote_host_1, port=6379, socket_timeout=4)
-        self.remote_db_2 = redis.StrictRedis(host=remote_host_2, port=6379, socket_timeout=4)
         self.server_connected = False
 
         self.logger.debug("Searching for active database")
@@ -324,20 +332,17 @@ class RedisClient:
 
     def find_active(self):
         while True:
-            try:
-                self.remote_db_1.ping()
-                self.logger.debug("Connected to LA-RaCtrl-CO-Srv-1 Redis Server")
-                self.server_connected = True
-                return self.remote_db_1
-            except redis.exceptions.ConnectionError:
+            for server in server_list:
                 try:
-                    self.remote_db_2.ping()
-                    self.logger.debug("Connected to CA-RaCtrl-CO-Srv-1 Redis Server")
+                    remote_db = redis.StrictRedis(host=server, port=6379, socket_timeout=4)
+                    remote_db.ping()
+                    self.logger.debug("Connected to {} Redis Server".format(server))
                     self.server_connected = True
-                    return self.remote_db_2
+                    return remote_db
                 except redis.exceptions.ConnectionError:
-                    self.logger.critical("No remote database found")
-                    raise Exception("No remote database found")
+                    self.logger.warning("{} Redis server is disconnected".format(server))
+                continue
+
             self.logger.info("Server not found. Retrying to connect in 10 seconds...")
             time.sleep(10)
 
