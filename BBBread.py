@@ -32,7 +32,11 @@ if "armv7" in subprocess.check_output(["uname", "-a"]).decode():
     sys.path.insert(0, "/root/bbb-function/src/scripts")
     from bbb import BBB
 
-    node = BBB(CONFIG_PATH)
+    try:
+        node = BBB(path=CONFIG_PATH, logfile = LOG_PATH_BBB)
+    except ModuleNotFoundError:
+        CONFIG_PATH = "/var/tmp/nonexistentpath.bin"
+        node = BBB(path=CONFIG_PATH, logfile = LOG_PATH_BBB)  # Forces BBBread to use default configurations  
 else:
     device = "server"
 
@@ -181,7 +185,7 @@ class RedisServer:
         last_logs = self.local_db.hvals(hashname + ":Logs")
         if node_state[:3] == "BBB":
             return 2
-        elif time_since_ping >= 11:
+        elif time_since_ping >= 13:
             if node_state != "Disconnected":
                 self.local_db.hset(hashname, "state_string", "Disconnected")
                 self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
@@ -308,7 +312,7 @@ class RedisClient:
         self.remote_db = self.find_active()
 
         # Defining BBB object and formatting remote hash name as "BBB:IP_ADDRESS:HOSTNAME"
-        self.bbb = BBB(path)
+        self.bbb = BBB(path=path, logfile=log_path)
         update_local_db()
         self.bbb_ip, self.bbb_hostname = self.local_db.hmget("device", "ip_address", "name")
         self.bbb_ip = self.bbb_ip.decode()
@@ -354,7 +358,7 @@ class RedisClient:
                 continue
             try:
                 self.force_update()
-                time.sleep(10)
+                time.sleep(8)
             except Exception as e:
                 now = int(time.time()) - 10800
                 self.logger.error("Pinging Thread died:\n{}".format(e))

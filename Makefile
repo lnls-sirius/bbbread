@@ -13,7 +13,7 @@ install:
 	# Services
 	cp --preserve=mode ${BREAD_SRC_SERVICE_FILE} ${SERVICE_FILE_DEST}
 
-	pip3.6 install redis
+	pip3.6 install -r requirements.txt
 
 	systemctl daemon-reload
 
