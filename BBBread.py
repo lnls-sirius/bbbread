@@ -40,8 +40,10 @@ if "armv7" in subprocess.check_output(["uname", "-a"]).decode():
 else:
     device = "server"
 
+
 class NoRedisServerError(Exception):
     pass
+
 
 def update_local_db():
     """Updates local redis database with device.json info"""
@@ -62,6 +64,7 @@ def timeout_hook(exctype, value, exctraceback):
         sys.exit("No Redis server found")
     else:
         import traceback
+
         traceback.print_exception(exctype, value, exctraceback)
         exit()
 
@@ -102,7 +105,7 @@ class RedisServer:
 
         # Configuring logging
         self.logger = logging.getLogger("bbbreadServer")
-        
+
         formatter = logging.Formatter("%(levelname)s:%(asctime)s:%(name)s:%(message)s")
         handler = logging.StreamHandler(sys.stdout)
         handler.setFormatter(formatter)
