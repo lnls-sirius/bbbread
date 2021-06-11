@@ -57,8 +57,4 @@ For more information, visit the [Sharepoint Document](https://cnpemcamp.sharepoi
 
 ## UI
 
-![Main Interface](Screenshots/main.png)
-![Logs tab](Screenshots/logs_tab.png)
-![Logs](Screenshots/logs.png)
-![Config](Screenshots/config.png)
-![Info](Screenshots/info.png)
+<img src="Screenshots/main.png" width="400"> <img src="Screenshots/logs_tab.png" width="400"> <img src="Screenshots/logs.png" width="400"> <img src="Screenshots/config.png" width="400"> <img src="Screenshots/info.png" width="400">
