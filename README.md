@@ -28,18 +28,17 @@ make uninstall
 * Clone this repository in BBB's /root directory
 
 ```bash
-cd /root
-git clone https://github.com/lnls-sirius/bbbread
+cd /root && git clone https://github.com/lnls-sirius/bbbread
+cd bbbread
 ```
 
-* Install pyredis
+* Install dependencies
 ```bash
-pip3 install redis
+pip3 install -r requirements.txt
 ```
 
 * Configure and start systemd service
 ```
-cd bbbread
 cp bbbread.service /etc/systemd/system
 systemctl daemon-reload
 systemctl start bbbread
@@ -52,9 +51,9 @@ systemctl enable bbbread
 * BBBread_Server: monitors Redis database for disconnected nodes.
 * BBBread_Client: runs on BBBs, pings server's Redis database.
 
-For the UI, visit [PyDM-OPI](https://github.com/lnls-sirius/pydm-opi)
+For the UI, visit [PyDM-OPI](https://github.com/lnls-sirius/pydm-opi).
 
-For more information read the [wiki-sirius page](https://wiki-sirius.lnls.br/mediawiki/index.php/CON:BBBread).
+For more information, visit the [Sharepoint Document](https://cnpemcamp.sharepoint.com/sites/iot/SitePages/BBBread.aspx) (requires authentication)
 
 ## UI
 
