@@ -340,8 +340,12 @@ class RedisClient:
         self.remote_db = self.find_active()
 
         # Defining BBB object and formatting remote hash name as "BBB:IP_ADDRESS:HOSTNAME"
-        self.bbb = BBB(path=path, logfile=log_path)
-        update_local_db()
+        if CONFIG_PATH != path or LOG_PATH_BBB != log_path:
+            self.bbb = BBB(path=path, logfile=log_path)
+        else:
+            self.bbb = node
+
+        update_local_db(self.local_db)
         self.bbb_ip, self.bbb_hostname = self.local_db.hmget("device", "ip_address", "name")
         self.bbb_ip = self.bbb_ip.decode()
         self.bbb_hostname = self.bbb_hostname.decode()
@@ -500,7 +504,7 @@ class RedisClient:
         """Updates local and remote database"""
         if log:
             self.logger.info("updating local db")
-        new_ip, new_hostname = update_local_db()
+        new_ip, new_hostname = update_local_db(self.local_db)
         if log:
             self.logger.info("local db updated")
         info = self.local_db.hgetall("device")
