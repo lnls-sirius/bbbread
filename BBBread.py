@@ -45,10 +45,12 @@ class NoRedisServerError(Exception):
     pass
 
 
-def update_local_db():
+def update_local_db(local_db=None):
     """Updates local redis database with device.json info"""
 
-    local_db = redis.StrictRedis(host="127.0.0.1", port=6379, socket_timeout=2)
+    if not local_db:
+        local_db = redis.StrictRedis(host="127.0.0.1", port=6379, socket_timeout=2)
+
     info = node.get_current_config()["n"]
     info["ping_time"] = str(time.time())
 
@@ -395,18 +397,16 @@ class RedisClient:
     def listen(self):
         """Thread to process server's commands"""
         while True:
-            time.sleep(2)
+            time.sleep(3)
             if not self.listening:
                 time.sleep(2)
                 continue
 
-            time.sleep(1)
-            now = int(time.time()) - 10800
             self.command_listname = self.hashname + ":Command"
-            command = []
 
             try:
                 if self.remote_db.keys(self.command_listname):
+                    now = int(time.time()) - 10800
                     command = self.remote_db.lpop(self.command_listname).decode()
                     command = command.split(";")
                     command[0] = int(command[0])
