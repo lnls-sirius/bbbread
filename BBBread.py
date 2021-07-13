@@ -334,7 +334,6 @@ class RedisClient:
 
         # Defining local and remote database
         self.local_db = redis.StrictRedis(host="127.0.0.1", port=6379, socket_timeout=4)
-        self.server_connected = False
 
         self.logger.debug("Searching for active database")
         self.remote_db = self.find_active()
@@ -373,7 +372,6 @@ class RedisClient:
                     remote_db = redis.StrictRedis(host=server, port=6379, socket_timeout=4)
                     remote_db.ping()
                     self.logger.debug("Connected to {} Redis Server".format(server))
-                    self.server_connected = True
                     return remote_db
                 except redis.exceptions.ConnectionError:
                     self.logger.warning("{} Redis server is disconnected".format(server))
@@ -385,7 +383,7 @@ class RedisClient:
     def ping_remote(self):
         """Thread that updates remote database every 10s, if pinging is enabled"""
         while True:
-            if not self.pinging or not self.server_connected:
+            if not self.pinging:
                 time.sleep(2)
                 continue
             try:
@@ -395,7 +393,7 @@ class RedisClient:
                 now = int(time.time()) - 10800
                 self.logger.error("Pinging Thread died:\n{}".format(e))
                 self.log_remote("Pinging Thread died: {}".format(e), now)
-                time.sleep(1)
+                time.sleep(10)
                 self.find_active()
 
     def listen(self):
@@ -419,7 +417,7 @@ class RedisClient:
             except redis.exceptions.TimeoutError:
                 self.logger.error("Reconnecting to Redis server")
                 time.sleep(1)
-                self.find_active()
+                #self.find_active()
                 continue
             except ValueError:
                 self.logger.error("Failed to convert first part of the command to integer")
