@@ -417,7 +417,7 @@ class RedisClient:
             except redis.exceptions.TimeoutError:
                 self.logger.error("Reconnecting to Redis server")
                 time.sleep(1)
-                #self.find_active()
+                # self.find_active()
                 continue
             except ValueError:
                 self.logger.error("Failed to convert first part of the command to integer")
