@@ -1,0 +1,35 @@
+version: '3.7'
+services:
+  server:
+    image: dockerregistry.lnls-sirius.com.br/lnlscon/bbbread:1.0
+    dns:
+      - 10.0.0.71
+      - 10.0.0.72
+    networks:
+      hostnet: {}
+    command: "python3 -u BBBread_Server.py"
+    volumes:
+      - /storage/services/repository/docker-stacks/bbbread/shared-files/:/data:rw
+    deploy:
+      placement:
+          constraints:
+              - node.hostname != TA-TiRack-CO-FWSrv-1
+              - node.hostname != CA-RaTim-CO-IOCSrv
+              - node.hostname != IA-14RaDiag03-CO-IOCSrv
+              - node.hostname != IA-16RaBbB-CO-IOCSrv
+              - node.hostname != IA-18RaDiag04-CO-IOCSrv
+              - node.hostname != IA-20RaDiag01-CO-IOCSrv-1
+              - node.hostname != IA-20RaDiag01-CO-IOCSrv-2
+              - node.hostname != IA-20RaDiag02-CO-IOCSrv-1
+              - node.hostname != IA-20RaDiag02-CO-IOCSrv-2
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "10"
+            max-size: "10m"
+
+networks:
+  hostnet:
+    external: true
+    name: host
+

@@ -133,13 +133,11 @@ class RedisServer:
             raise NoRedisServerError
 
     def get_logs(self, hashname=None):
-
         if hashname:
             return [
                 [key.decode("utf-8"), value.decode("utf-8")] for key, value in self.local_db.hgetall(hashname).items()
             ]
-        else:
-            return [name.decode("utf-8") for name in self.local_db.keys("BBB:*:Logs")]
+        return [name.decode("utf-8") for name in self.local_db.keys("BBB:*:Logs")]
 
     # TODO: Change function name
     def list_connected(self, ip="", hostname=""):
@@ -350,12 +348,6 @@ class RedisClient:
         self.bbb_ip = self.bbb_ip.decode()
         self.bbb_hostname = self.bbb_hostname.decode()
         self.hashname = "BBB:{}:{}".format(self.bbb_ip, self.bbb_hostname)
-        self.command_listname = "BBB:{}:{}:Command".format(self.bbb_ip, self.bbb_hostname)
-
-        # Pinging thread
-        # self.ping_thread = threading.Thread(target=self.ping_remote, daemon=True)
-        # self.ping_thread.start()
-        # self.logger.info("Pinging thread started")
 
         # Listening thread
         self.listen_thread = threading.Thread(target=self.listen, daemon=True)
@@ -365,6 +357,7 @@ class RedisClient:
         self.logger.info("BBBread startup completed")
         self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
 
+        # Pinging thread
         self.logger.info("Pinging thread starting")
         self.ping_remote()
 
@@ -403,12 +396,12 @@ class RedisClient:
                 time.sleep(2)
                 continue
 
-            self.command_listname = self.hashname + ":Command"
+            command_listname = self.hashname + ":Command"
 
             try:
-                if self.remote_db.keys(self.command_listname):
+                if self.remote_db.keys(command_listname):
                     now = int(time.time()) - 10800
-                    command = self.remote_db.lpop(self.command_listname).decode()
+                    command = self.remote_db.lpop(command_listname).decode()
                     command = command.split(";")
                     command[0] = int(command[0])
                 else:
@@ -425,7 +418,7 @@ class RedisClient:
                 time.sleep(3)
                 continue
 
-            self.logger.info("command received {}".format(command))
+            self.logger.info("Command received {}".format(command))
             if command[0] == Command.REBOOT:
                 self.log_remote("Reboot command received", now, self.logger.info)
                 self.bbb.reboot()
@@ -487,7 +480,7 @@ class RedisClient:
         except Exception as e:
             self.logger.error("Failed to send remote log information: {}".format(e))
 
-    def force_update(self, log=False):
+    def force_update(self):
         """Updates local and remote database"""
         self.logger.debug("updating local db")
         new_ip, new_hostname = update_local_db(self.local_db)
