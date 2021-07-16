@@ -214,8 +214,7 @@ class RedisServer:
         elif time_since_ping >= 13:
             if node_state != "Disconnected":
                 self.local_db.hset(hashname, "state_string", "Disconnected")
-                if last_logs and last_logs[-1].decode() != "Disconnected":
-                    self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
+                self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
             return 1
         if last_logs:
             known_status = last_logs[-1].decode()
@@ -348,6 +347,15 @@ class RedisClient:
         self.bbb_ip = self.bbb_ip.decode()
         self.bbb_hostname = self.bbb_hostname.decode()
         self.hashname = "BBB:{}:{}".format(self.bbb_ip, self.bbb_hostname)
+<<<<<<< HEAD
+=======
+        self.command_listname = "BBB:{}:{}:Command".format(self.bbb_ip, self.bbb_hostname)
+
+        # Pinging thread
+        self.ping_thread = threading.Thread(target=self.ping_remote, daemon=True)
+        self.ping_thread.start()
+        self.logger.info("Pinging thread started")
+>>>>>>> parent of 513a46f (Pings on main thread, fixes disconnect spam on server)
 
         # Listening thread
         self.listen_thread = threading.Thread(target=self.listen, daemon=True)
@@ -357,10 +365,13 @@ class RedisClient:
         self.logger.info("BBBread startup completed")
         self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
 
+<<<<<<< HEAD
         # Pinging thread
         self.logger.info("Pinging thread starting")
         self.ping_remote()
 
+=======
+>>>>>>> parent of 513a46f (Pings on main thread, fixes disconnect spam on server)
     def find_active(self):
         while True:
             for server in SERVER_LIST:
