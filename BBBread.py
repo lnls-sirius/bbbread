@@ -214,7 +214,8 @@ class RedisServer:
         elif time_since_ping >= 13:
             if node_state != "Disconnected":
                 self.local_db.hset(hashname, "state_string", "Disconnected")
-                self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
+                if last_logs and last_logs[-1].decode() != "Disconnected":
+                    self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
             return 1
         if last_logs:
             known_status = last_logs[-1].decode()
