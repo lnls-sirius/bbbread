@@ -208,20 +208,29 @@ class RedisServer:
         last_ping = float(self.local_db.hget(hashname, "ping_time").decode())
         time_since_ping = now - last_ping
         node_state = self.local_db.hget(hashname, "state_string").decode()
-        last_logs = self.local_db.hvals(hashname + ":Logs")
+        logs = self.local_db.hgetall(hashname + ":Logs")
+        sorted(logs.items(), key=lambda x: x[0], reverse=True)
+        logs = list(logs.values())
         if node_state[:3] == "BBB":
             return 2
         elif time_since_ping >= 13:
             if node_state != "Disconnected":
                 self.local_db.hset(hashname, "state_string", "Disconnected")
-                if last_logs:
-                    last_times = self.local_db.hkeys(hashname + ":Logs")
-                    if [x for _, x in sorted(zip(last_times, last_logs))][-1].decode() != "Disconnected":
+                if logs:
+                    if logs[0].decode() != "Disconnected":
                         self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
+            """
+            else:
+                addr = ":".join(hashname.split(":")[:2])
+                if addr != "BBB:0.0.0.0":
+                    homonyms = [h.decode() for h in self.local_db.keys(addr+"*") if b"Logs" not in h]
+                    if len(homonyms) > 1:
+                        for h in homonyms:
+                            if self.local_db.hget(h, "state_string").decode() == "Connected":
+                                pass"""
             return 1
-        if last_logs:
-            last_times = self.local_db.hkeys(hashname + ":Logs")
-            known_status = [x for _, x in sorted(zip(last_times, last_logs))][-1].decode()
+        if logs:
+            known_status = logs[0].decode()
             if known_status != "Reconnected" and (known_status == "Disconnected" or known_status == hashname):
                 self.log_remote(hashname + ":Logs", "Reconnected", int(now) - 10800)
         return 0
