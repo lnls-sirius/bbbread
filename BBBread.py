@@ -214,12 +214,15 @@ class RedisServer:
         elif time_since_ping >= 13:
             if node_state != "Disconnected":
                 self.local_db.hset(hashname, "state_string", "Disconnected")
-                if last_logs and last_logs[-1].decode() != "Disconnected":
-                    self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
+                if last_logs:
+                    last_times = self.local_db.hkeys(hashname + ":Logs")
+                    if [x for _,x in sorted(zip(last_times,last_logs))][-1].decode() != "Disconnected":
+                        self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
             return 1
         if last_logs:
-            known_status = last_logs[-1].decode()
-            if known_status == "Disconnected" or known_status == hashname:
+            last_times = self.local_db.hkeys(hashname + ":Logs")
+            known_status = [x for _,x in sorted(zip(last_times,last_logs))][-1].decode()
+            if known_status != "Reconnected" and (known_status == "Disconnected" or known_status == hashname):
                 self.log_remote(hashname + ":Logs", "Reconnected", int(now) - 10800)
         return 0
 
