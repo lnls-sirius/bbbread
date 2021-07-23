@@ -125,7 +125,7 @@ class RedisServer:
 
     # TODO: Change function name
     def list_connected(self, ip="", hostname=""):
-        """Returns a list of all BeagleBone Blacks connected to REDIS database
+        """Returns a list of all BeagleBone Blacks connected to Redis database
         If IP or hostname is specified lists only the ones with the exact specified parameter"""
         command_instances = []
         log_instances = []
@@ -192,9 +192,9 @@ class RedisServer:
         last_ping = float(self.local_db.hget(hashname, "ping_time").decode())
         time_since_ping = now - last_ping
         node_state = self.local_db.hget(hashname, "state_string").decode()
-        logs = self.local_db.hgetall(hashname + ":Logs")
-        sorted(logs.items(), key=lambda x: x[0], reverse=True)
-        logs = list(logs.values())
+        logs = [
+            x[1] for x in sorted(self.local_db.hgetall(hashname + ":Logs").items(), key=lambda x: x[0], reverse=True)
+        ]
         if node_state[:3] == "BBB":
             return 2
         elif time_since_ping >= 13:
