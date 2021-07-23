@@ -369,6 +369,12 @@ class RedisClient:
                     return remote_db
                 except redis.exceptions.ConnectionError:
                     self.logger.warning("{} Redis server is disconnected".format(server))
+                except redis.exceptions.ResponseError:
+                    self.logger.warning("Could not connect to {}, a response error has ocurred".format(server))
+                    time.sleep(30)
+                except Exception as e:
+                    self.logger.warning("Could not connect to {}: {}".format(server, e))
+                    time.sleep(50)
                 continue
 
             self.logger.info("Server not found. Retrying to connect in 10 seconds...")
@@ -505,12 +511,13 @@ class RedisClient:
             )
             self.remote_db.hmset(old_hashname, old_info)
             self.listening = True
+
+            self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
+            self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
+
         # Updates remote hash
         self.logger.debug("updating remote db")
-
         self.remote_db.hmset(self.hashname, info)
-        self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
-        self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
 
 
 if __name__ == "__main__":
