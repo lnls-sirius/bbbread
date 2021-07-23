@@ -2,6 +2,8 @@
 
 from BBBread import RedisServer
 from time import sleep
+import redis
+import traceback
 
 CONNECTED = 0
 DISCONNECTED = 1
@@ -16,5 +18,9 @@ while True:
         bbb_list = server.list_connected()
         for bbb in bbb_list:
             bbb_state = server.bbb_state(bbb)
+    except (redis.exceptions.TimeoutError, redis.exceptions.ConnectionError):
+        print("Timeout")
+        continue
     except AttributeError:
+        traceback.print_exc()
         continue

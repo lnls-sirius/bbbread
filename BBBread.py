@@ -58,19 +58,6 @@ def update_local_db(local_db=None):
     return info["ip_address"], info["name"]
 
 
-def timeout_hook(exctype, value, exctraceback):
-    if exctype == redis.exceptions.TimeoutError or exctype == redis.exceptions.ConnectionError:
-        print("Timeout reading from Redis database. Stopping thread for 5 seconds")
-        time.sleep(5)
-    elif exctype == NoRedisServerError:
-        sys.exit("No Redis server found")
-    else:
-        import traceback
-
-        traceback.print_exception(exctype, value, exctraceback)
-        exit()
-
-
 class Command:
     (
         PING,
@@ -102,9 +89,6 @@ class RedisServer:
     """Runs on Control System's Server"""
 
     def __init__(self, log_path=LOG_PATH_SERVER):
-        # Global hook for Redis timeouts
-        sys.excepthook = timeout_hook
-
         # Configuring logging
         self.logger = logging.getLogger("bbbreadServer")
 
@@ -119,7 +103,7 @@ class RedisServer:
 
         connected = False
         for server in SERVER_LIST[:3]:
-            self.local_db = redis.StrictRedis(host=server, port=6379, socket_timeout=2)
+            self.local_db = redis.StrictRedis(host=server, port=6379, socket_timeout=3)
             try:
                 self.local_db.ping()
                 self.logger.debug("Connected to {} Redis Server".format(server))
