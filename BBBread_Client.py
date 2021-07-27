@@ -1,7 +1,7 @@
 #!/usr/bin/python-sirius
 
 from time import sleep
-from BBBread import RedisClient, update_local_db
+from BBBread import RedisClient
 
 # TODO: commutable server
 
