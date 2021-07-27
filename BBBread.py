@@ -385,7 +385,7 @@ class RedisClient:
         while True:
             try:
                 self.force_update()
-                time.sleep(8)
+                time.sleep(10)
             except Exception as e:
                 now = int(time.time()) - 10800
                 self.log_remote("Pinging thread found an exception: {}".format(e), now, self.logger.error)
@@ -403,7 +403,7 @@ class RedisClient:
             command_listname = self.hashname + ":Command"
 
             try:
-                if self.remote_db.keys(command_listname):
+                if self.remote_db.get(command_listname):
                     now = int(time.time()) - 10800
                     command = self.remote_db.lpop(command_listname).decode()
                     command = command.split(";")
@@ -492,7 +492,6 @@ class RedisClient:
 
         info = self.local_db.hgetall("device")
         # Formats remote hash name as "BBB:IP_ADDRESS"
-        self.hashname = "BBB:{}:{}".format(new_ip, new_hostname)
         if new_ip != self.bbb_ip or new_hostname != self.bbb_hostname:
             old_hashname = "BBB:{}:{}".format(self.bbb_ip, self.bbb_hostname)
             old_info = info.copy()
@@ -512,6 +511,7 @@ class RedisClient:
             self.remote_db.hmset(old_hashname, old_info)
             self.listening = True
 
+            self.hashname = "BBB:{}:{}".format(new_ip, new_hostname)
             self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
             self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
 

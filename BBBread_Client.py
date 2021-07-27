@@ -1,13 +1,10 @@
 #!/usr/bin/python-sirius
 
-import time
-
+from time import sleep
 from BBBread import RedisClient, update_local_db
 
 # TODO: commutable server
 
-
-update_local_db()
-client = RedisClient()
+RedisClient()
 while True:
-    time.sleep(10)
+    sleep(1000)
