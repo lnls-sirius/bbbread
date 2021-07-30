@@ -352,12 +352,14 @@ class RedisClient:
         self.logger.info("Pinging thread started")
 
         # Listening thread
-        self.listen_thread = threading.Thread(target=self.listen, daemon=True)
+        #self.listen_thread = threading.Thread(target=self.listen, daemon=True)
         self.listening = True
-        self.listen_thread.start()
+        #self.listen_thread.start()
         self.logger.info("Listening thread started")
         self.logger.info("BBBread startup completed")
         self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
+
+        self.listen()
 
     def find_active(self):
         while True:
@@ -399,11 +401,13 @@ class RedisClient:
             if not self.listening:
                 time.sleep(2)
                 continue
+            if not self.ping_thread.is_alive():
+                break
 
             command_listname = self.hashname + ":Command"
 
             try:
-                if self.remote_db.get(command_listname):
+                if self.remote_db.lrange(command_listname, 0, 1):
                     now = int(time.time()) - 10800
                     command = self.remote_db.lpop(command_listname).decode()
                     command = command.split(";")
@@ -418,6 +422,7 @@ class RedisClient:
                 self.logger.error("Failed to convert first part of the command to integer")
                 continue
             except Exception as e:
+                now = int(time.time()) - 10800
                 self.log_remote("Listening thread found an exception: {}".format(e), now, self.logger.error)
                 time.sleep(3)
                 continue
