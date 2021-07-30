@@ -352,9 +352,7 @@ class RedisClient:
         self.logger.info("Pinging thread started")
 
         # Listening thread
-        #self.listen_thread = threading.Thread(target=self.listen, daemon=True)
         self.listening = True
-        #self.listen_thread.start()
         self.logger.info("Listening thread started")
         self.logger.info("BBBread startup completed")
         self.logs_name = "BBB:{}:{}:Logs".format(self.bbb_ip, self.bbb_hostname)
