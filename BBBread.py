@@ -212,7 +212,7 @@ class RedisServer:
             return 1
         if logs:
             known_status = logs[0].decode()
-            if known_status != "Reconnected" and (known_status in ("Disconnected",hashname)):
+            if known_status != "Reconnected" and (known_status in ("Disconnected", hashname)):
                 self.log_remote(hashname + ":Logs", "Reconnected", int(now) - 10800)
         return 0
 
@@ -301,6 +301,7 @@ class RedisServer:
 
     def log_remote(self, bbb, message, date):
         self.local_db.hset(bbb, date, message)
+
 
 class RedisClient:
     """
@@ -397,12 +398,10 @@ class RedisClient:
             if not self.ping_thread.is_alive():
                 break
 
-            command_listname = self.hashname + ":Command"
-
             try:
-                if self.remote_db.lrange(command_listname, 0, 1):
+                if self.remote_db.lrange(self.command_listname, 0, 1):
                     now = int(time.time()) - 10800
-                    command = self.remote_db.lpop(command_listname).decode()
+                    command = self.remote_db.lpop(self.command_listname).decode()
                     command = command.split(";")
                     command[0] = int(command[0])
                 else:
@@ -453,9 +452,7 @@ class RedisClient:
 
             elif command[0] == Command.SET_NAMESERVERS and len(command) == 3:
                 nameserver_1, nameserver_2 = command[1:]
-                self.log_remote(
-                    f"Nameservers changed: {nameserver_1}, {nameserver_2}", now, self.logger.info
-                )
+                self.log_remote(f"Nameservers changed: {nameserver_1}, {nameserver_2}", now, self.logger.info)
                 self.bbb.update_nameservers(nameserver_1, nameserver_2)
 
             elif command[0] >= Command.STOP_SERVICE and len(command) == 2:
@@ -489,7 +486,7 @@ class RedisClient:
                 self.remote_db.rename(f"{old_hashname}:Logs", f"{self.hashname}:Logs")
 
             self.logger.info(
-                f"old ip: {self.bbb_ip}, new ip: {new_ip}, old hostname: {self.bbb_hostname}, new hostname: {new_hostname}"
+                f"old ip: {self.bbb_ip}, new ip: {new_ip}, old hostname: {self.bbb_hostname}, new hostname: {new_hostname}"  # noqa: E501
             )
             self.remote_db.hmset(old_hashname, old_info)
             self.listening = True
