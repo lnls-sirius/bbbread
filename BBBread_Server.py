@@ -10,7 +10,6 @@ DISCONNECTED = 1
 MOVED = 2
 
 server = RedisServer()
-local_db = server.local_db
 
 while True:
     try:
