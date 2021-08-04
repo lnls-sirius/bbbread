@@ -113,6 +113,9 @@ class RedisServer:
         if not connected:
             raise NoRedisServerError
 
+        self.log_thread = threading.Thread(target=self.log_cleanup, daemon=True)
+        self.log_thread.start()
+
     def get_logs(self, hashname=None):
         if hashname:
             return [
@@ -301,6 +304,16 @@ class RedisServer:
 
     def log_remote(self, bbb, message, date):
         self.local_db.hset(bbb, date, message)
+
+    def log_cleanup(self):
+        age_limit = time.time() - 904000
+
+        for hash in self.local_db.keys("BBB:*:Logs"):
+            for field in self.local_db.hgetall(hash):
+                if float(field) < age_limit:
+                    self.local_db.hdel(hash, field)
+
+        time.sleep(7200)
 
 
 class RedisClient:
