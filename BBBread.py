@@ -194,12 +194,17 @@ class RedisServer:
         if node_state[:3] == "BBB":
             return 2
 
-        if time_since_ping >= 13:
+        if time_since_ping >= 15:
             if node_state != "Disconnected":
                 self.local_db.hset(hashname, "state_string", "Disconnected")
                 if logs:
-                    if logs[0].decode() != "Disconnected":
-                        self.log_remote(hashname + ":Logs", "Disconnected", int(now) - 10800)
+                    if "Disconnected" not in logs[0].decode():
+                        self.log_remote(f"{hashname}:Logs", f"Disconnected (timestamp {last_ping})", int(now) - 10800)
+                        self.local_db.sadd("DisconnectedWarn", hashname)
+                else:
+                    self.log_remote(f"{hashname}:Logs", f"Disconnected (timestamp {last_ping})", int(now) - 10800)
+                    self.local_db.sadd("DisconnectedWarn", hashname)
+ 
             """
             else:
                 addr = ":".join(hashname.split(":")[:2])
@@ -212,7 +217,7 @@ class RedisServer:
             return 1
         if logs:
             known_status = logs[0].decode()
-            if known_status != "Reconnected" and (known_status in ("Disconnected", hashname)):
+            if known_status != "Reconnected" and "Disconnected" in known_status:
                 self.log_remote(hashname + ":Logs", "Reconnected", int(now) - 10800)
         return 0
 
