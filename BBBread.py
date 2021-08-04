@@ -207,7 +207,7 @@ class RedisServer:
                 else:
                     self.log_remote(f"{hashname}:Logs", f"Disconnected (timestamp {last_ping})", int(now) - 10800)
                     self.local_db.sadd("DisconnectedWarn", hashname)
- 
+
             """
             else:
                 addr = ":".join(hashname.split(":")[:2])

@@ -2,6 +2,7 @@
 
 from BBBread import RedisServer
 from time import sleep
+import redis
 import traceback
 
 CONNECTED = 0
