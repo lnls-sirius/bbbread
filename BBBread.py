@@ -497,7 +497,6 @@ class RedisClient:
         new_hostname = socket.gethostname()
 
         info = self.local_db.hgetall("device")
-        self.logger.info(f"old hostname: {self.bbb_hostname} new hostname: {new_hostname}")
         # Formats remote hash name as "BBB:IP_ADDRESS"
         if new_ip != self.bbb_ip or new_hostname != self.bbb_hostname:
             self.hashname = f"BBB:{new_ip}:{new_hostname}"
