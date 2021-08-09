@@ -4,6 +4,7 @@ import subprocess
 import sys
 import threading
 import time
+import socket
 from logging.handlers import RotatingFileHandler
 
 import redis
@@ -359,6 +360,7 @@ class RedisClient:
         self.bbb_hostname = self.bbb_hostname.decode()
         self.hashname = f"BBB:{self.bbb_ip}:{self.bbb_hostname}"
         self.command_listname = f"{self.hashname}:Command"
+        self.l_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         # Pinging thread
         self.ping_thread = threading.Thread(target=self.ping_remote, daemon=True)
@@ -488,11 +490,17 @@ class RedisClient:
 
     def force_update(self):
         """Updates local and remote database"""
-        new_ip, new_hostname = update_local_db(self.local_db)
+        update_local_db(self.local_db)
+
+        self.l_socket.connect(('10.255.255.255', 1))
+        new_ip = self.l_socket.getsockname()[0]
+        new_hostname = socket.gethostname()
 
         info = self.local_db.hgetall("device")
+        self.logger.info(f"old hostname: {self.bbb_hostname} new hostname: {new_hostname}")
         # Formats remote hash name as "BBB:IP_ADDRESS"
         if new_ip != self.bbb_ip or new_hostname != self.bbb_hostname:
+            self.hashname = f"BBB:{new_ip}:{new_hostname}"
             old_hashname = f"BBB:{self.bbb_ip}:{self.bbb_hostname}"
             old_info = info.copy()
             old_info[b"state_string"] = self.hashname
@@ -509,7 +517,6 @@ class RedisClient:
             self.remote_db.hmset(old_hashname, old_info)
             self.listening = True
 
-            self.hashname = f"BBB:{new_ip}:{new_hostname}"
             self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
             self.logs_name = f"{self.hashname}:Logs"
 
@@ -519,3 +526,4 @@ class RedisClient:
 
 if __name__ == "__main__":
     sys.exit()
+
