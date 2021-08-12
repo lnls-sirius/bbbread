@@ -43,19 +43,6 @@ class NoRedisServerError(Exception):
     pass
 
 
-def update_local_db(local_db=None):
-    """Updates local redis database with device.json info"""
-
-    if not local_db:
-        local_db = redis.StrictRedis(host="127.0.0.1", port=6379, socket_timeout=2)
-
-    info = node.get_current_config()["n"]
-    info["ping_time"] = str(time.time())
-
-    local_db.hmset("device", info)
-    return info["ip_address"], info["name"]
-
-
 class Command:
     (
         PING,
@@ -354,7 +341,6 @@ class RedisClient:
         else:
             self.bbb = node
 
-        update_local_db(self.local_db)
         self.bbb_ip, self.bbb_hostname = self.local_db.hmget("device", "ip_address", "name")
         self.bbb_ip = self.bbb_ip.decode()
         self.bbb_hostname = self.bbb_hostname.decode()
@@ -489,13 +475,11 @@ class RedisClient:
             self.logger.error(f"Failed to send remote log information: {e}")
 
     def force_update(self):
-        """Updates local and remote database"""
-        update_local_db(self.local_db)
-
-        self.l_socket.connect(('10.255.255.255', 1))
+        self.l_socket.connect(("10.255.255.255", 1))
         new_ip = self.l_socket.getsockname()[0]
         new_hostname = socket.gethostname()
 
+        self.local_db.hset("device", "ping_time", str(time.time()))
         info = self.local_db.hgetall("device")
         # Formats remote hash name as "BBB:IP_ADDRESS"
         if new_ip != self.bbb_ip or new_hostname != self.bbb_hostname:
@@ -518,11 +502,13 @@ class RedisClient:
 
             self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
             self.logs_name = f"{self.hashname}:Logs"
+            self.command_listname = f"{self.hashname}:Command"
 
-        # Updates remote hash
+        # Do NOT trust the device hash
+        info[b"ip_address"] = new_ip
+        info[b"name"] = new_hostname
         self.remote_db.hmset(self.hashname, info)
 
 
 if __name__ == "__main__":
     sys.exit()
-
