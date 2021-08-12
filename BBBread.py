@@ -461,7 +461,7 @@ class RedisClient:
                 self.log_remote(f"Nameservers changed: {nameserver_1}, {nameserver_2}", now, self.logger.info)
                 self.bbb.update_nameservers(nameserver_1, nameserver_2)
 
-            elif command[0] >= Command.STOP_SERVICE and len(command) == 2:
+            elif command[0] >= Command.RESTART_SERVICE and len(command) == 2:
                 action = "stop" if command[0] == Command.STOP_SERVICE else "restart"
                 service_name = command[1]
                 self.log_remote(f"{service_name} service {action}", now, self.logger.info)
