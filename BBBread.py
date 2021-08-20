@@ -504,9 +504,8 @@ class RedisClient:
             self.logs_name = f"{self.hashname}:Logs"
             self.command_listname = f"{self.hashname}:Command"
 
-        # Do NOT trust the device hash
-        info[b"ip_address"] = new_ip
-        info[b"name"] = new_hostname
+            self.local_db.hset("device", "ip_address", new_ip, "name", new_hostname)
+
         self.remote_db.hmset(self.hashname, info)
 
 
