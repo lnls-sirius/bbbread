@@ -475,7 +475,12 @@ class RedisClient:
             self.logger.error(f"Failed to send remote log information: {e}")
 
     def force_update(self):
-        self.l_socket.connect(("10.255.255.255", 1))
+        try:
+            self.l_socket.connect(("10.255.255.255", 1))
+        except OSError:
+            self.l_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            return
+
         new_ip = self.l_socket.getsockname()[0]
         new_hostname = socket.gethostname()
 
@@ -489,9 +494,9 @@ class RedisClient:
             old_info[b"state_string"] = self.hashname
             old_info[b"name"] = self.bbb_hostname
             old_info[b"ip_address"] = self.bbb_ip
-            if self.remote_db.keys(f"{old_hashname}:Command"):
+            if self.remote_db.exists(f"{old_hashname}:Command"):
                 self.remote_db.rename(f"{old_hashname}:Command", f"{self.hashname}:Command")
-            if self.remote_db.keys(f"{old_hashname}:Logs"):
+            if self.remote_db.exists(f"{old_hashname}:Logs"):
                 self.remote_db.rename(f"{old_hashname}:Logs", f"{self.hashname}:Logs")
 
             self.logger.info(
@@ -504,7 +509,10 @@ class RedisClient:
             self.logs_name = f"{self.hashname}:Logs"
             self.command_listname = f"{self.hashname}:Command"
 
-            self.local_db.hset("device", "ip_address", new_ip, "name", new_hostname)
+            self.local_db.hset("device", "ip_address", new_ip)
+
+        # Do NOT trust the device hash
+        info[b"name"] = new_hostname
 
         self.remote_db.hmset(self.hashname, info)
 
