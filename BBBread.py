@@ -183,6 +183,8 @@ class RedisServer:
             x[1] for x in sorted(self.local_db.hgetall(hashname + ":Logs").items(), key=lambda x: x[0], reverse=True)
         ]
         if node_state[:3] == "BBB":
+            if time_since_ping > 1209600:
+                self.local_db.delete(hashname)
             return 2
 
         if time_since_ping >= 15:
@@ -195,16 +197,6 @@ class RedisServer:
                 else:
                     self.log_remote(f"{hashname}:Logs", f"Disconnected (timestamp {last_ping})", int(now) - 10800)
                     self.local_db.sadd("DisconnectedWarn", hashname)
-
-            """
-            else:
-                addr = ":".join(hashname.split(":")[:2])
-                if addr != "BBB:0.0.0.0":
-                    homonyms = [h.decode() for h in self.local_db.keys(addr+"*") if b"Logs" not in h]
-                    if len(homonyms) > 1:
-                        for h in homonyms:
-                            if self.local_db.hget(h, "state_string").decode() == "Connected":
-                                pass"""
             return 1
         if logs:
             known_status = logs[0].decode()
@@ -341,12 +333,18 @@ class RedisClient:
         else:
             self.bbb = node
 
+        self.l_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.bbb_ip, self.bbb_hostname = self.local_db.hmget("device", "ip_address", "name")
-        self.bbb_ip = self.bbb_ip.decode()
-        self.bbb_hostname = self.bbb_hostname.decode()
+        if self.bbb_ip and self.bbb_hostname:
+            self.bbb_ip = self.bbb_ip.decode()
+            self.bbb_hostname = self.bbb_hostname.decode()
+        else:
+            self.bbb_ip = self.l_socket.getsockname()[0]
+            self.bbb_hostname = socket.gethostname()
+            self.local_db.hmset("device", {"ip_address": self.bbb_ip, "name": self.bbb_hostname})
+
         self.hashname = f"BBB:{self.bbb_ip}:{self.bbb_hostname}"
         self.command_listname = f"{self.hashname}:Command"
-        self.l_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         # Pinging thread
         self.ping_thread = threading.Thread(target=self.ping_remote, daemon=True)
