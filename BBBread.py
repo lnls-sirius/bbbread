@@ -343,6 +343,9 @@ class RedisClient:
             self.bbb_hostname = socket.gethostname()
             self.local_db.hmset("device", {"ip_address": self.bbb_ip, "name": self.bbb_hostname})
 
+        if not self.local_db.hmget("device", "sector"):
+            self.local_db.hmset("device", {"sector": self.bbb.node.sector})
+
         self.hashname = f"BBB:{self.bbb_ip}:{self.bbb_hostname}"
         self.command_listname = f"{self.hashname}:Command"
 
