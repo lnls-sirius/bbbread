@@ -407,7 +407,7 @@ class RedisClient:
                 break
 
             try:
-                if self.remote_db.lrange(self.command_listname, 0, 1):
+                if self.remote_db.exists(self.command_listname):
                     now = int(time.time()) - 10800
                     command = self.remote_db.lpop(self.command_listname).decode()
                     command = command.split(";")
