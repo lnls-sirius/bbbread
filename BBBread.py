@@ -1,5 +1,5 @@
+"""BBBread's main module"""
 import logging
-import os
 import subprocess
 import sys
 import threading
@@ -40,10 +40,12 @@ if "armv7" in subprocess.check_output(["uname", "-a"]).decode():
 
 
 class NoRedisServerError(Exception):
-    pass
+    """General error for no available servers"""
 
 
 class Command:
+    """List of available commands"""
+
     (
         PING,
         REBOOT,
@@ -104,13 +106,6 @@ class RedisServer:
         self.log_thread = threading.Thread(target=self.log_cleanup, daemon=True)
         self.log_thread.start()
 
-    def get_logs(self, hashname=None):
-        if hashname:
-            return [
-                [key.decode("utf-8"), value.decode("utf-8")] for key, value in self.local_db.hgetall(hashname).items()
-            ]
-        return [name.decode("utf-8") for name in self.local_db.keys("BBB:*:Logs")]
-
     def list_connected(self, ip="", hostname=""):
         """Returns a list of all BeagleBone Blacks connected to Redis database
         If IP or hostname is specified lists only the ones with the exact specified parameter"""
@@ -131,45 +126,11 @@ class RedisServer:
             command_instances = self.local_db.keys("BBB:*:Command")
             log_instances = self.local_db.keys("BBB:*:Logs")
 
-        for node in all_instances:
-            if node in command_instances or node in log_instances:
+        for bbb_node in all_instances:
+            if bbb_node in command_instances or bbb_node in log_instances:
                 continue
-            all_connected.append(node.decode())
+            all_connected.append(bbb_node.decode())
         return all_connected
-
-    def get_node(self, hashname):
-        """Returns a BBB info, if an error occurs returns False"""
-        try:
-            info = self.local_db.hgetall(hashname)
-            return info
-        except Exception as e:
-            self.logger.error("Failed to return nodes info due to error:\n{}".format(e))
-            return False
-
-    def send_command(self, ip: str, command, hostname="", override=False):
-        """Sends a command to a BeagleBone Black
-        Returns False if it fails to send command"""
-        try:
-            bbb_hashname = self.list_connected(ip, hostname)
-
-            if override and hostname:
-                bbb_hashname = ["BBB:{}:{}".format(ip, hostname)]
-            if len(bbb_hashname) == 1:
-                bbb_state = self.local_db.hget(bbb_hashname[0], "state_string").decode()
-                if bbb_state != "Connected":
-                    self.logger.error("failed to send command, node is inactive")
-                    return False
-                bbb_command_listname = "{}:Command".format(bbb_hashname[0])
-                check = self.local_db.rpush(bbb_command_listname, command)
-                return bool(check)
-            if len(bbb_hashname) < 1:
-                self.logger.error("no node found with the specified IP and hostname:" + ip + hostname)
-            else:
-                self.logger.error("two or more nodes found with the specified ip, please specify a hostname")
-            return False
-        except Exception as e:
-            self.logger.error("A fatal error occurred while sending the command:\n{}".format(e))
-            return False
 
     def bbb_state(self, hashname: str):
         """Verifies if node is active. Ping time inferior to 15 seconds
@@ -178,7 +139,14 @@ class RedisServer:
 
         last_ping = float(self.local_db.hget(hashname, "ping_time").decode())
         time_since_ping = now - last_ping
-        node_state = self.local_db.hget(hashname, "state_string").decode()
+
+        node_state = self.local_db.hget(hashname, "state_string")
+        if node_state:
+            node_state = node_state.decode()
+        else:
+            self.local_db.hset(hashname, "state_string", "Connected")
+            return
+
         logs = [
             x[1] for x in sorted(self.local_db.hgetall(hashname + ":Logs").items(), key=lambda x: x[0], reverse=True)
         ]
@@ -204,99 +172,18 @@ class RedisServer:
                 self.log_remote(hashname + ":Logs", "Reconnected", int(now) - 10800)
         return 0
 
-    def delete_bbb(self, hashname: str):
-        """Removes a hash from redis database"""
-        self.local_db.delete(hashname)
-
-    def change_hostname(self, ip: str, new_hostname: str, current_hostname="", override=False):
-        """Changes a BeagleBone Black hostname
-        Returns false if an error occurs while sending the command or BBB isn't connected to Redis"""
-        command = "{};{}".format(Command.SET_HOSTNAME, new_hostname)
-        check = self.send_command(ip, command, current_hostname, override)
-        # If command is sent successfully logs hostname change
-        if check:
-            self.logger.info("{} NEW HOSTNAME - {}".format(ip, new_hostname))
-        return check
-
-    def change_nameservers(self, ip: str, nameserver_1: str, nameserver_2: str, hostname="", override=False):
-        """Changes a BeagleBone Black nameservers
-        Returns false if an error occurs while sending the command or BBB isn't connected to Redis"""
-        command = "{};{};{}".format(Command.SET_NAMESERVERS, nameserver_1, nameserver_2)
-        check = self.send_command(ip, command, hostname, override)
-        # If command is sent successfully logs hostname change
-        if check:
-            self.logger.debug("{} NEW NAMESERVERS - {}  {}".format(ip, nameserver_1, nameserver_2))
-        return check
-
-    def change_ip(
-        self,
-        current_ip: str,
-        ip_type: str,
-        hostname="",
-        new_ip="",
-        new_mask="",
-        new_gateway="",
-        override=False,
-    ):
-        """Changes a BeagleBone Black IP address (DHCP or manual)
-        Returns false if an error occurs while sending the command or BBB isn't connected to Redis"""
-        command = "{};{}".format(Command.SET_IP, ip_type)
-        if ip_type == "manual":
-            # Verifies if new_ip is possible
-            check_integrity = new_ip.split(".")
-            if len(check_integrity) != 4:
-                self.logger.warning("{} NEW IP NOT FORMATTED CORRECTLY")
-                return False
-            # Verifies if specified IP is available
-            ip_available = os.system('ping "-c" 1 -w2 "10.0.6.6" > /dev/null 2>&1')
-            if ip_available:
-                command += ";{};{};{}".format(new_ip, new_mask, new_gateway)
-            else:
-                self.logger.warning("{} IP NOT AVAILABLE")
-                return False
-        check = self.send_command(current_ip, command, hostname, override)
-        if check:
-            self.logger.info(
-                "{} NEW IP - type:{} - new ip: {} - mask: {} - gateway: {}".format(
-                    current_ip, ip_type, new_ip, new_mask, new_gateway
-                )
-            )
-        return check
-
-    def reboot_node(self, ip: str, hostname="", override=False):
-        """Reboots the specified BeagleBone Black
-        Returns false if an error occurs while sending the command or BBB isn't connected to Redis"""
-        check = self.send_command(ip, Command.REBOOT, hostname, override)
-        if check:
-            self.logger.info("{} REBOOT".format(ip))
-        return check
-
-    def stop_service(self, ip: str, service: str, hostname="", override=False):
-        """Stops the specified service on the given BBB"""
-        command = "{};{}".format(Command.STOP_SERVICE, service)
-        check = self.send_command(ip, command, hostname, override)
-        if check:
-            self.logger.info("{} SERVICE STOPPED - {}".format(ip, service))
-        return check
-
-    def restart_service(self, ip: str, service: str, hostname="", override=False):
-        """Restarts the specified service on the given BBB"""
-        command = "{};{}".format(Command.RESTART_SERVICE, service)
-        check = self.send_command(ip, command, hostname, override)
-        if check:
-            self.logger.info("{} SERVICE RESTARTED - {}".format(ip, service))
-        return check
-
     def log_remote(self, bbb, message, date):
+        """Pushes logs to remote server"""
         self.local_db.hset(bbb, date, message)
 
     def log_cleanup(self):
+        """Cleans up old logs"""
         age_limit = time.time() - 904000
 
-        for hash in self.local_db.keys("BBB:*:Logs"):
-            for field in self.local_db.hgetall(hash):
+        for log_hash in self.local_db.keys("BBB:*:Logs"):
+            for field in self.local_db.hgetall(log_hash):
                 if float(field) < age_limit:
-                    self.local_db.hdel(hash, field)
+                    self.local_db.hdel(log_hash, field)
 
         time.sleep(7200)
 
@@ -344,7 +231,7 @@ class RedisClient:
             self.local_db.hmset("device", {"ip_address": self.bbb_ip, "name": self.bbb_hostname})
 
         self.local_db.hmset(
-            "device", {"sector": self.bbb.node.sector, "details": "None", "state_string": "Connected", "state": 2}
+            "device", {"sector": self.bbb.node.sector, "details": "No Device", "state_string": "Connected", "state": 2}
         )
 
         self.hashname = f"BBB:{self.bbb_ip}:{self.bbb_hostname}"
@@ -364,6 +251,7 @@ class RedisClient:
         self.listen()
 
     def find_active(self):
+        """Find available server and replace old one"""
         while True:
             for server in SERVER_LIST:
                 try:
@@ -470,6 +358,7 @@ class RedisClient:
                 subprocess.check_output(["systemctl", action, service_name])
 
     def log_remote(self, message, date, log_level):
+        """Pushes logs to remote server"""
         try:
             log_level(message)
             self.remote_db.hset(self.logs_name, date, message)
@@ -477,6 +366,7 @@ class RedisClient:
             self.logger.error(f"Failed to send remote log information: {e}")
 
     def force_update(self):
+        """Updates node data on remote server"""
         try:
             self.l_socket.connect(("10.255.255.255", 1))
         except OSError:
