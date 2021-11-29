@@ -231,7 +231,13 @@ class RedisClient:
             self.local_db.hmset("device", {"ip_address": self.bbb_ip, "name": self.bbb_hostname})
 
         self.local_db.hmset(
-            "device", {"sector": self.bbb.node.sector, "details": "No Device", "state_string": "Connected", "state": 2}
+            "device",
+            {
+                "sector": self.bbb.node.sector,
+                "details": self.bbb.node.details,
+                "state_string": self.bbb.node.state_string,
+                "state": self.bbb.node.state,
+            },
         )
 
         self.hashname = f"BBB:{self.bbb_ip}:{self.bbb_hostname}"
