@@ -13,7 +13,7 @@ server = RedisServer()
 
 while True:
     try:
-        sleep(1)
+        sleep(20)
         bbb_list = server.list_connected()
         for bbb in bbb_list:
             bbb_state = server.bbb_state(bbb)

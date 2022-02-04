@@ -135,42 +135,37 @@ class RedisServer:
     def bbb_state(self, hashname: str):
         """Verifies if node is active. Ping time inferior to 15 seconds
         Zero if active node, One if disconnected and Two if moved to other hash"""
-        now = time.time()
-
-        last_ping = float(self.local_db.hget(hashname, "ping_time").decode())
-        time_since_ping = now - last_ping
-
         node_state = self.local_db.hget(hashname, "state_string")
         if node_state:
             node_state = node_state.decode()
         else:
             self.local_db.hset(hashname, "state_string", "Connected")
-            return
+            return 0
 
         logs = [
             x[1] for x in sorted(self.local_db.hgetall(hashname + ":Logs").items(), key=lambda x: x[0], reverse=True)
         ]
-        if node_state[:3] == "BBB":
-            if time_since_ping > 1209600:
-                self.local_db.delete(hashname)
-            return 2
 
-        if time_since_ping >= 15:
-            if node_state != "Disconnected":
-                self.local_db.hset(hashname, "state_string", "Disconnected")
-                if logs:
-                    if "Disconnected" not in logs[0].decode():
-                        self.log_remote(f"{hashname}:Logs", f"Disconnected (timestamp {last_ping})", int(now) - 10800)
-                        self.local_db.sadd("DisconnectedWarn", hashname)
-                else:
-                    self.log_remote(f"{hashname}:Logs", f"Disconnected (timestamp {last_ping})", int(now) - 10800)
-                    self.local_db.sadd("DisconnectedWarn", hashname)
+        now = int(time.time()) - 10800
+        print(now)
+        if self.local_db.hget(hashname, "heartbeat"):
+            self.local_db.hdel(hashname, "heartbeat")
+            self.local_db.hset(hashname, mapping={"state_string": "Connected", "ping_time": now})
+            if logs and logs[0].decode() != "Reconnected":
+                self.log_remote(f"{hashname}:Logs", "Reconnected", now)
+            return 0
+        else:
+            if node_state[:3] == "BBB":
+                if now - int(self.local_db.hget(hashname, "ping_time").decode()) > 1209600:
+                    self.local_db.delete(hashname)
+                return 2
+
+            if not logs or "Disconnected" != logs[0].decode():
+                self.log_remote(f"{hashname}:Logs", "Disconnected", now)
+                self.local_db.sadd("DisconnectedWarn", hashname)
+
+            self.local_db.hset(hashname, "state_string", "Disconnected")
             return 1
-        if logs:
-            known_status = logs[0].decode()
-            if known_status != "Reconnected" and "Disconnected" in known_status:
-                self.log_remote(hashname + ":Logs", "Reconnected", int(now) - 10800)
-        return 0
 
     def log_remote(self, bbb, message, date):
         """Pushes logs to remote server"""
@@ -372,7 +367,6 @@ class RedisClient:
             self.logger.error(f"Failed to send remote log information: {e}")
 
     def force_update(self):
-        """Updates node data on remote server"""
         try:
             self.l_socket.connect(("10.255.255.255", 1))
         except OSError:
@@ -382,7 +376,7 @@ class RedisClient:
         new_ip = self.l_socket.getsockname()[0]
         new_hostname = socket.gethostname()
 
-        self.local_db.hset("device", "ping_time", str(time.time()))
+        self.remote_db.hset(self.hashname, "heartbeat", 1)
         info = self.local_db.hgetall("device")
         # Formats remote hash name as "BBB:IP_ADDRESS"
         if new_ip != self.bbb_ip or new_hostname != self.bbb_hostname:
@@ -407,12 +401,10 @@ class RedisClient:
             self.logs_name = f"{self.hashname}:Logs"
             self.command_listname = f"{self.hashname}:Command"
 
-            self.local_db.hset("device", "ip_address", new_ip)
+            info[b"name"] = new_hostname
+            info[b"ip_address"] = new_ip
 
-        # Do NOT trust the device hash
-        info[b"name"] = new_hostname
-
-        self.remote_db.hmset(self.hashname, info)
+            self.remote_db.hmset(self.hashname, info)
 
 
 if __name__ == "__main__":
