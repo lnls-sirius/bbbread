@@ -110,31 +110,11 @@ class RedisServer:
         self.log_thread = threading.Thread(target=self.log_cleanup, daemon=True)
         self.log_thread.start()
 
-    def list_connected(self, ip="", hostname=""):
-        """Returns a list of all BeagleBone Blacks connected to Redis database
-        If IP or hostname is specified lists only the ones with the exact specified parameter"""
-        command_instances = []
-        log_instances = []
-        all_connected = []
-
-        if ip and hostname:
-            all_instances = self.local_db.keys("BBB:{}:{}".format(ip, hostname))
-        elif ip and not hostname:
-            all_instances = self.local_db.keys("BBB:{}:*".format(ip))
-            command_instances = self.local_db.keys("BBB:{}:*:Command".format(ip))
-            log_instances = self.local_db.keys("BBB:{}:*:Logs".format(ip))
-        elif not ip and hostname:
-            all_instances = self.local_db.keys("BBB:*:{}".format(hostname))
-        else:
-            all_instances = self.local_db.keys("BBB:*")
-            command_instances = self.local_db.keys("BBB:*:Command")
-            log_instances = self.local_db.keys("BBB:*:Logs")
-
-        for bbb_node in all_instances:
-            if bbb_node in command_instances or bbb_node in log_instances:
-                continue
-            all_connected.append(bbb_node.decode())
-        return all_connected
+    def list_connected(self):
+        """Returns a list of all BeagleBone Blacks connected to Redis database"""
+        return [
+            x.decode() for x in self.local_db.keys("BBB:*") if not any(s in x.decode() for s in ["Logs", "Command"])
+        ]
 
     def bbb_state(self, hashname: str):
         """Verifies if node is active. Ping time inferior to 15 seconds
