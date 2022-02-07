@@ -9,6 +9,7 @@ from logging.handlers import RotatingFileHandler
 
 import redis
 
+"""
 SERVER_LIST = [
     "10.0.38.59",
     "10.0.38.46",
@@ -22,7 +23,9 @@ SERVER_LIST = [
     "10.128.153.87",
     "10.128.153.88",
 ]
+"""
 
+SERVER_LIST = ["127.0.0.1"]
 
 CONFIG_PATH = "/var/tmp/bbb.bin"
 LOG_PATH_SERVER = "bbbread.log"
@@ -150,7 +153,7 @@ class RedisServer:
         now = int(time.time()) - 10800
 
         if node_state[:3] == "BBB":
-            if now - int(self.local_db.hget(hashname, "ping_time").decode()) > 1209600:
+            if now - float(self.local_db.hget(hashname, "ping_time").decode()) > 1209600:
                 self.local_db.delete(hashname)
             return 2
 
