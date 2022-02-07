@@ -23,6 +23,7 @@ SERVER_LIST = [
     "10.128.153.88",
 ]
 
+
 CONFIG_PATH = "/var/tmp/bbb.bin"
 LOG_PATH_SERVER = "bbbread.log"
 LOG_PATH_BBB = "/var/log/bbbread.log"
@@ -147,25 +148,25 @@ class RedisServer:
         ]
 
         now = int(time.time()) - 10800
-        print(now)
+
+        if node_state[:3] == "BBB":
+            if now - int(self.local_db.hget(hashname, "ping_time").decode()) > 1209600:
+                self.local_db.delete(hashname)
+            return 2
+
         if self.local_db.hget(hashname, "heartbeat"):
             self.local_db.hdel(hashname, "heartbeat")
             self.local_db.hset(hashname, mapping={"state_string": "Connected", "ping_time": now})
             if logs and logs[0].decode() != "Reconnected":
                 self.log_remote(f"{hashname}:Logs", "Reconnected", now)
             return 0
-        else:
-            if node_state[:3] == "BBB":
-                if now - int(self.local_db.hget(hashname, "ping_time").decode()) > 1209600:
-                    self.local_db.delete(hashname)
-                return 2
 
-            if not logs or "Disconnected" != logs[0].decode():
-                self.log_remote(f"{hashname}:Logs", "Disconnected", now)
-                self.local_db.sadd("DisconnectedWarn", hashname)
+        if not logs or "Disconnected" != logs[0].decode():
+            self.log_remote(f"{hashname}:Logs", "Disconnected", now)
+            self.local_db.sadd("DisconnectedWarn", hashname)
 
-            self.local_db.hset(hashname, "state_string", "Disconnected")
-            return 1
+        self.local_db.hset(hashname, "state_string", "Disconnected")
+        return 1
 
     def log_remote(self, bbb, message, date):
         """Pushes logs to remote server"""
