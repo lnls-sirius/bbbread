@@ -13,7 +13,7 @@ import redis
 from consts import CONFIG_PATH, LOG_PATH_BBB, Command, SERVER_LIST
 
 sys.path.insert(0, "/root/bbb-function/src/scripts")
-from bbb import BBB
+from bbb import BBB  # noqa: E402
 
 try:
     node = BBB(path=CONFIG_PATH, logfile=LOG_PATH_BBB)
@@ -101,9 +101,6 @@ class RedisClient:
                     return remote_db
                 except redis.exceptions.ConnectionError:
                     self.logger.warning(f"{server} Redis server is disconnected")
-                except redis.exceptions.ResponseError:
-                    self.logger.warning(f"Could not connect to {server}, a response error has ocurred")
-                    time.sleep(30)
                 except Exception as e:
                     self.logger.warning(f"Could not connect to {server}: {e}")
                     time.sleep(50)
@@ -116,7 +113,44 @@ class RedisClient:
         """Thread that updates remote database every 10s, if pinging is enabled"""
         while True:
             try:
-                self.force_update()
+                try:
+                    self.l_socket.connect(("10.255.255.255", 1))
+                except OSError:
+                    self.l_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    return
+
+                new_ip = self.l_socket.getsockname()[0]
+                new_hostname = socket.gethostname()
+
+                self.remote_db.hset(self.hashname, "heartbeat", 1)
+                # Formats remote hash name as "BBB:IP_ADDRESS"
+                if new_ip != self.bbb_ip or new_hostname != self.bbb_hostname:
+                    info = self.local_db.hgetall("device")
+                    self.hashname = f"BBB:{new_ip}:{new_hostname}"
+                    old_hashname = f"BBB:{self.bbb_ip}:{self.bbb_hostname}"
+                    old_info = info.copy()
+                    old_info[b"state_string"] = self.hashname
+                    old_info[b"name"] = self.bbb_hostname
+                    old_info[b"ip_address"] = self.bbb_ip
+                    if self.remote_db.exists(f"{old_hashname}:Command"):
+                        self.remote_db.rename(f"{old_hashname}:Command", f"{self.hashname}:Command")
+                    if self.remote_db.exists(f"{old_hashname}:Logs"):
+                        self.remote_db.rename(f"{old_hashname}:Logs", f"{self.hashname}:Logs")
+
+                    self.logger.info(
+                        f"old ip: {self.bbb_ip}, new ip: {new_ip}, old hostname: {self.bbb_hostname}, new hostname: {new_hostname}"  # noqa: E501
+                    )
+                    self.remote_db.hmset(old_hashname, old_info)
+                    self.listening = True
+
+                    self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
+                    self.logs_name = f"{self.hashname}:Logs"
+                    self.command_listname = f"{self.hashname}:Command"
+
+                    info[b"name"] = new_hostname
+                    info[b"ip_address"] = new_ip
+
+                    self.remote_db.hmset(self.hashname, info)
                 time.sleep(10)
             except Exception as e:
                 now = int(time.time()) - 10800
@@ -204,46 +238,6 @@ class RedisClient:
             self.remote_db.hset(self.logs_name, date, message)
         except Exception as e:
             self.logger.error(f"Failed to send remote log information: {e}")
-
-    def force_update(self):
-        try:
-            self.l_socket.connect(("10.255.255.255", 1))
-        except OSError:
-            self.l_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            return
-
-        new_ip = self.l_socket.getsockname()[0]
-        new_hostname = socket.gethostname()
-
-        self.remote_db.hset(self.hashname, "heartbeat", 1)
-        # Formats remote hash name as "BBB:IP_ADDRESS"
-        if new_ip != self.bbb_ip or new_hostname != self.bbb_hostname:
-            info = self.local_db.hgetall("device")
-            self.hashname = f"BBB:{new_ip}:{new_hostname}"
-            old_hashname = f"BBB:{self.bbb_ip}:{self.bbb_hostname}"
-            old_info = info.copy()
-            old_info[b"state_string"] = self.hashname
-            old_info[b"name"] = self.bbb_hostname
-            old_info[b"ip_address"] = self.bbb_ip
-            if self.remote_db.exists(f"{old_hashname}:Command"):
-                self.remote_db.rename(f"{old_hashname}:Command", f"{self.hashname}:Command")
-            if self.remote_db.exists(f"{old_hashname}:Logs"):
-                self.remote_db.rename(f"{old_hashname}:Logs", f"{self.hashname}:Logs")
-
-            self.logger.info(
-                f"old ip: {self.bbb_ip}, new ip: {new_ip}, old hostname: {self.bbb_hostname}, new hostname: {new_hostname}"  # noqa: E501
-            )
-            self.remote_db.hmset(old_hashname, old_info)
-            self.listening = True
-
-            self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
-            self.logs_name = f"{self.hashname}:Logs"
-            self.command_listname = f"{self.hashname}:Command"
-
-            info[b"name"] = new_hostname
-            info[b"ip_address"] = new_ip
-
-            self.remote_db.hmset(self.hashname, info)
 
 
 if __name__ == "__main__":

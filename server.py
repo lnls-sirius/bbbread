@@ -76,8 +76,7 @@ class RedisServer:
                 self.local_db.delete(hashname)
             return 2
 
-        if self.local_db.hget(hashname, "heartbeat"):
-            self.local_db.hdel(hashname, "heartbeat")
+        if self.local_db.hdel(hashname, "heartbeat"):
             self.local_db.hset(hashname, mapping={"state_string": "Connected", "ping_time": now})
             if logs and logs[0].decode() != "Reconnected":
                 self.log_remote(f"{hashname}:Logs", "Reconnected", now)
