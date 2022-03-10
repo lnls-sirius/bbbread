@@ -7,7 +7,7 @@ BeagleBone Black - Redis Activity Display, a new way to monitor Control System's
 Requirements:
 
 * Redis database running on port 6379
-* BBB Python module (comes with bbb-function)
+* bbb-function
 
 Installation:
 
@@ -47,14 +47,15 @@ systemctl enable bbbread
 
 ## The files
 
-* BBBread: project's main Python module.
-* BBBread_Server: monitors Redis database for disconnected nodes.
-* BBBread_Client: runs on BBBs, pings server's Redis database.
-
-For the UI, visit [PyDM-OPI](https://github.com/lnls-sirius/pydm-opi).
+* server: monitors Redis database for disconnected nodes.
+* client: runs on BBBs, pings server's Redis database.
 
 For more information, visit the [Sharepoint Document](https://cnpemcamp.sharepoint.com/sites/iot/SitePages/BBBread.aspx) (requires authentication)
 
-## UI
+## [UI (Web)](https://github.com/cnpem-iot/bbbread-frontend)
 
-<img src="Screenshots/main.png" width="400"> <img src="Screenshots/logs_tab.png" width="400"> <img src="Screenshots/logs.png" width="400"> <img src="Screenshots/config.png" width="400"> <img src="Screenshots/info.png" width="400">
+<img src="https://github.com/cnpem-iot/bbbread-frontend/blob/master/readme-data/screencap.png" width="400">
+
+## [UI (PyDM)](https://github.com/lnls-sirius/pydm-opi/tree/master/src/siriushlacon/beaglebones)
+
+<img src="readme-data/main.png" width="400"> 
