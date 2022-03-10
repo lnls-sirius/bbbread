@@ -1,4 +1,3 @@
-"""
 SERVER_LIST = [
     "10.0.38.59",
     "10.0.38.46",
@@ -12,9 +11,6 @@ SERVER_LIST = [
     "10.128.153.87",
     "10.128.153.88",
 ]
-"""
-
-SERVER_LIST = ["127.0.0.1"]
 
 CONFIG_PATH = "/var/tmp/bbb.bin"
 LOG_PATH_SERVER = "bbbread.log"
