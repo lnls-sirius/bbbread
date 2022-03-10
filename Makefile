@@ -5,7 +5,7 @@ BREAD_SRC_SERVICE_FILE = ${BREAD_SERVICE_NAME}.service
 
 SERVICE_FILE_DEST = /etc/systemd/system
 
-.PHONY: all install uninstall dependencies clean
+.PHONY: all install uninstall dependencies clean docker
 
 all:
 
@@ -26,6 +26,9 @@ uninstall:
 	rm -f ${SERVICE_FILE_DEST}/${BREAD_SRC_SERVICE_FILE}
 
 	systemctl daemon-reload
+
+docker:
+	docker build -f docker/Dockerfile -t dockerregistry.lnls-sirius.com.br/sei/bbbread:$(shell date +"%Y-%m-%d") .
 
 clean:
 	find . -name '*.pyc' -exec rm --force {} +
