@@ -54,15 +54,18 @@ class RedisClient:
         else:
             self.bbb = node
 
-        self.l_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.bbb_ip, self.bbb_hostname = self.local_db.hmget("device", "ip_address", "name")
-        if self.bbb_ip and self.bbb_hostname:
-            self.bbb_ip = self.bbb_ip.decode()
-            self.bbb_hostname = self.bbb_hostname.decode()
-        else:
-            self.bbb_ip = self.l_socket.getsockname()[0]
-            self.bbb_hostname = socket.gethostname()
-            self.local_db.hmset("device", {"ip_address": self.bbb_ip, "name": self.bbb_hostname})
+        for service in subprocess.check_output(["connmanctl", "services"]).decode().split("\n")[:-1]:
+            if "Wired" in service:
+                self.nw_service = service.split(16 * " ")[1]
+                break
+            else:
+                self.nw_service = None
+
+        if not self.nw_service:
+            raise ConnectionError
+
+        self.bbb_ip_type, self.bbb_ip, self.bbb_nameservers = self.get_network_specs()
+        self.bbb_hostname = socket.gethostname()
 
         self.local_db.hmset(
             "device",
@@ -71,11 +74,15 @@ class RedisClient:
                 "details": self.bbb.node.details,
                 "state_string": self.bbb.node.state_string,
                 "state": self.bbb.node.state,
+                "ip_type": self.bbb_ip_type,
+                "ip_address": self.bbb_ip,
+                "nameservers": self.bbb_nameservers,
             },
         )
 
         self.hashname = f"BBB:{self.bbb_ip}:{self.bbb_hostname}"
         self.command_listname = f"{self.hashname}:Command"
+        self.remote_db.hmset(self.hashname, self.local_db.hgetall("device"))
 
         # Pinging thread
         self.ping_thread = threading.Thread(target=self.ping_remote, daemon=True)
@@ -89,6 +96,30 @@ class RedisClient:
         self.logs_name = f"{self.hashname}:Logs"
 
         self.listen()
+
+    def get_network_specs(self):
+        nameservers = "0.0.0.0"
+        ip_type = "0.0.0.0"
+        ip_address = "0.0.0.0"
+
+        command_out = subprocess.check_output(["connmanctl", "services", self.nw_service]).decode().split("\n")[:-1]
+
+        if command_out:
+            for line in command_out:
+                # Address line
+                if "IPv4 = " in line:
+                    try:
+                        ip_type = line[18 : line.index(",")]
+                        ip_address = line[line.index("Address=") + 8 : line.index("Netmask") - 2]
+                    except Exception:
+                        continue
+                # Nameservers line
+                if "Nameservers = " in line:
+                    try:
+                        nameservers = line[line.index("=") + 4 : -2]
+                    except Exception:
+                        continue
+        return ip_type, ip_address, nameservers
 
     def find_active(self):
         """Find available server and replace old one"""
@@ -113,42 +144,60 @@ class RedisClient:
         """Thread that updates remote database every 10s, if pinging is enabled"""
         while True:
             try:
-                try:
-                    self.l_socket.connect(("10.255.255.255", 1))
-                except OSError:
-                    self.l_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    return
-
-                new_ip = self.l_socket.getsockname()[0]
+                new_ip_type, new_ip, new_nameservers = self.get_network_specs()
                 new_hostname = socket.gethostname()
 
                 self.remote_db.hset(self.hashname, "heartbeat", 1)
                 # Formats remote hash name as "BBB:IP_ADDRESS"
-                if new_ip != self.bbb_ip or new_hostname != self.bbb_hostname:
+                if (
+                    new_ip != self.bbb_ip
+                    or new_hostname != self.bbb_hostname
+                    or new_ip_type != self.bbb_ip_type
+                    or new_nameservers != self.bbb_nameservers
+                ):
                     info = self.local_db.hgetall("device")
+
                     self.hashname = f"BBB:{new_ip}:{new_hostname}"
                     old_hashname = f"BBB:{self.bbb_ip}:{self.bbb_hostname}"
-                    old_info = info.copy()
-                    old_info[b"state_string"] = self.hashname
-                    old_info[b"name"] = self.bbb_hostname
-                    old_info[b"ip_address"] = self.bbb_ip
-                    if self.remote_db.exists(f"{old_hashname}:Command"):
-                        self.remote_db.rename(f"{old_hashname}:Command", f"{self.hashname}:Command")
-                    if self.remote_db.exists(f"{old_hashname}:Logs"):
-                        self.remote_db.rename(f"{old_hashname}:Logs", f"{self.hashname}:Logs")
 
-                    self.logger.info(
-                        f"old ip: {self.bbb_ip}, new ip: {new_ip}, old hostname: {self.bbb_hostname}, new hostname: {new_hostname}"  # noqa: E501
+                    old_info = info.copy()
+                    old_info.update(
+                        {
+                            b"state_string": self.hashname,
+                            b"name": self.bbb_hostname,
+                            b"ip_address": self.bbb_ip,
+                            b"ip_type": self.bbb_ip_type,
+                            b"nameservers": self.bbb_nameservers,
+                        }
                     )
+
+                    try:
+                        self.remote_db.rename(f"{old_hashname}:Command", f"{self.hashname}:Command")
+                        self.remote_db.rename(f"{old_hashname}:Logs", f"{self.hashname}:Logs")
+                    except redis.exceptions.ResponseError:
+                        pass
+
+                    self.logger.info(old_info)
                     self.remote_db.hmset(old_hashname, old_info)
                     self.listening = True
 
-                    self.bbb_ip, self.bbb_hostname = (new_ip, new_hostname)
+                    self.bbb_ip, self.bbb_hostname, self.bbb_ip_type, self.bbb_nameservers = (
+                        new_ip,
+                        new_hostname,
+                        new_ip_type,
+                        new_nameservers,
+                    )
                     self.logs_name = f"{self.hashname}:Logs"
                     self.command_listname = f"{self.hashname}:Command"
 
-                    info[b"name"] = new_hostname
-                    info[b"ip_address"] = new_ip
+                    info.update(
+                        {
+                            b"name": new_hostname,
+                            b"ip_address": new_ip,
+                            b"ip_type": new_ip_type,
+                            b"nameservers": new_nameservers,
+                        }
+                    )
 
                     self.remote_db.hmset(self.hashname, info)
                 time.sleep(10)
