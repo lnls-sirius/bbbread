@@ -54,15 +54,12 @@ class RedisClient:
         else:
             self.bbb = node
 
+        self.nw_service = None
+
         for service in subprocess.check_output(["connmanctl", "services"]).decode().split("\n")[:-1]:
             if "Wired" in service:
                 self.nw_service = service.split(16 * " ")[1]
                 break
-            else:
-                self.nw_service = None
-
-        if not self.nw_service:
-            raise ConnectionError
 
         self.bbb_ip_type, self.bbb_ip, self.bbb_nameservers = self.get_network_specs()
         self.bbb_hostname = socket.gethostname()
@@ -101,6 +98,9 @@ class RedisClient:
         nameservers = "0.0.0.0"
         ip_type = "0.0.0.0"
         ip_address = "0.0.0.0"
+
+        if not self.nw_service:
+            return ip_type, ip_address, nameservers
 
         command_out = subprocess.check_output(["connmanctl", "services", self.nw_service]).decode().split("\n")[:-1]
 
