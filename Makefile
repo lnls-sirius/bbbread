@@ -29,6 +29,7 @@ uninstall:
 
 docker:
 	docker build -f docker/Dockerfile -t dockerregistry.lnls-sirius.com.br/sei/bbbread:$(shell date +"%Y-%m-%d") .
+	docker push dockerregistry.lnls-sirius.com.br/sei/bbbread:$(shell date +"%Y-%m-%d")
 
 clean:
 	find . -name '*.pyc' -exec rm --force {} +
