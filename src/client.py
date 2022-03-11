@@ -63,6 +63,7 @@ class RedisClient:
 
         self.bbb_ip_type, self.bbb_ip, self.bbb_nameservers = self.get_network_specs()
         self.bbb_hostname = socket.gethostname()
+        self.l_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         self.local_db.hmset(
             "device",
