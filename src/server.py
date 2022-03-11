@@ -69,7 +69,7 @@ class RedisServer:
             x[1] for x in sorted(self.local_db.hgetall(hashname + ":Logs").items(), key=lambda x: x[0], reverse=True)
         ]
 
-        now = int(time.time()) - 10800
+        now = int(time.time())
 
         if node_state[:3] == "BBB":
             if now - float(self.local_db.hget(hashname, "ping_time").decode()) > 1209600:
