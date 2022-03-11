@@ -68,7 +68,7 @@ class RedisClient:
         self.local_db.hmset(
             "device",
             {
-                "hostname": self.bbb_hostname,
+                "name": self.bbb_hostname,
                 "sector": self.bbb.node.sector,
                 "details": self.bbb.node.details,
                 "state_string": self.bbb.node.state_string,
