@@ -61,7 +61,6 @@ class RedisClient:
                 self.nw_service = service.split(16 * " ")[1]
                 break
 
-
         self.l_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.bbb_ip_type, self.bbb_ip, self.bbb_nameservers = self.get_network_specs()
         self.bbb_hostname = socket.gethostname()
@@ -211,8 +210,7 @@ class RedisClient:
                     self.remote_db.hmset(self.hashname, info)
                 time.sleep(10)
             except Exception as e:
-                now = int(time.time()) - 10800
-                self.log_remote(f"Pinging thread found an exception: {e}", now, self.logger.error)
+                self.log_remote(f"Pinging thread found an exception: {e}", self.logger.error)
                 time.sleep(10)
                 self.find_active()
 
@@ -228,7 +226,6 @@ class RedisClient:
 
             try:
                 if self.remote_db.exists(self.command_listname):
-                    now = int(time.time()) - 10800
                     command = self.remote_db.lpop(self.command_listname).decode()
                     command = command.split(";")
                     command[0] = int(command[0])
@@ -242,21 +239,20 @@ class RedisClient:
                 self.logger.error("Failed to convert first part of the command to integer")
                 continue
             except Exception as e:
-                now = int(time.time()) - 10800
-                self.log_remote(f"Listening thread found an exception: {e}", now, self.logger.error)
+                self.log_remote(f"Listening thread found an exception: {e}", self.logger.error)
                 time.sleep(3)
                 continue
 
             self.logger.info(f"Command received {command}")
             if command[0] == Command.REBOOT:
-                self.log_remote("Reboot command received", now, self.logger.info)
+                self.log_remote("Reboot command received", self.logger.info)
                 self.bbb.reboot()
 
             elif command[0] == Command.SET_HOSTNAME and len(command) == 2:
                 new_hostname = command[1]
                 self.bbb.update_hostname(new_hostname)
                 # Updates variable names
-                self.log_remote(f"Hostname changed to {new_hostname}", now, self.logger.info)
+                self.log_remote(f"Hostname changed to {new_hostname}", self.logger.info)
                 self.listening = False
 
             elif command[0] == Command.SET_IP:
@@ -267,7 +263,7 @@ class RedisClient:
                     self.bbb.update_ip_address(ip_type, new_ip, new_mask, new_gateway)
                     # Updates variable names
                     info = f"IP manually changed to {new_ip}, netmask {new_mask}, gateway {new_gateway}"
-                    self.log_remote(info, now, self.logger.info)
+                    self.log_remote(info, self.logger.info)
                     self.listening = False
 
                 # Verifies if IP is DHCP
@@ -275,25 +271,25 @@ class RedisClient:
                     self.bbb.update_ip_address(ip_type)
                     # Updates variable names
                     time.sleep(1)
-                    self.log_remote("IP changed to DHCP", now, self.logger.info)
+                    self.log_remote("IP changed to DHCP", self.logger.info)
                     self.listening = False
 
             elif command[0] == Command.SET_NAMESERVERS and len(command) == 3:
                 nameserver_1, nameserver_2 = command[1:]
-                self.log_remote(f"Nameservers changed: {nameserver_1}, {nameserver_2}", now, self.logger.info)
+                self.log_remote(f"Nameservers changed: {nameserver_1}, {nameserver_2}", self.logger.info)
                 self.bbb.update_nameservers(nameserver_1, nameserver_2)
 
             elif command[0] >= Command.RESTART_SERVICE and len(command) == 2:
                 action = "stop" if command[0] == Command.STOP_SERVICE else "restart"
                 service_name = command[1]
-                self.log_remote(f"{service_name} service {action}", now, self.logger.info)
+                self.log_remote(f"{service_name} service {action}", self.logger.info)
                 subprocess.check_output(["systemctl", action, service_name])
 
-    def log_remote(self, message: str, date: float, log_level: Callable):
+    def log_remote(self, message: str, log_level: Callable):
         """Pushes logs to remote server"""
         try:
             log_level(message)
-            self.remote_db.hset(self.logs_name, date, message)
+            self.remote_db.hset(self.logs_name, int(time.time()), message)
         except Exception as e:
             self.logger.error(f"Failed to send remote log information: {e}")
 
