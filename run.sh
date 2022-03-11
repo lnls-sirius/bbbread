@@ -6,7 +6,7 @@ echo Synchronizing bbbread files
 rsync -a --delete-after 10.128.114.161::bbbread $RSYNC_LOCAL --contimeout=5
 if [ "$?" -eq "0" ]
 then
-    echo "Rsync succesful"
+    echo "Rsync successful"
 else
     echo "Rsync failed, resorting to git pull"
     git pull
