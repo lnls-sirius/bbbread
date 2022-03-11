@@ -100,6 +100,13 @@ class RedisClient:
         ip_address = "0.0.0.0"
 
         if not self.nw_service:
+            try:
+                self.l_socket.connect(("10.255.255.255", 1))
+            except OSError:
+                self.l_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                return ip_type, ip_address, nameservers
+
+            ip_address, ip_type = self.l_socket.getsockname()[0], "dhcp"
             return ip_type, ip_address, nameservers
 
         command_out = subprocess.check_output(["connmanctl", "services", self.nw_service]).decode().split("\n")[:-1]
