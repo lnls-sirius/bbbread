@@ -157,6 +157,10 @@ class RedisClient:
                 new_hostname = socket.gethostname()
 
                 self.remote_db.hset(self.hashname, "heartbeat", 1)
+
+                if not self.remote_db.hexists(self.hashname, "ip_address"):
+                    self.remote_db.hmset(self.hashname, self.local_db.hgetall("device"))
+
                 # Formats remote hash name as "BBB:IP_ADDRESS"
                 if (
                     new_ip != self.bbb_ip
