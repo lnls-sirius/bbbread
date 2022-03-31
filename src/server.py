@@ -82,7 +82,7 @@ class RedisServer:
                 self.log_remote(f"{hashname}:Logs", "Reconnected", now)
             return 0
 
-        if not logs or "Disconnected" != logs[0].decode():
+        if not logs or "Disconnected" != logs[0].decode() or "BBB-SIMAR-Mini" in hashname:
             self.log_remote(f"{hashname}:Logs", "Disconnected", now)
             self.local_db.sadd("DisconnectedWarn", hashname)
 
