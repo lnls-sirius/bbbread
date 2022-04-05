@@ -78,7 +78,7 @@ class RedisServer:
 
         if self.local_db.hdel(hashname, "heartbeat"):
             self.local_db.hset(hashname, mapping={"state_string": "Connected", "ping_time": now})
-            if logs and logs[0].decode() != "Reconnected":
+            if (logs and logs[0].decode() != "Reconnected") and "BBB-SIMAR-Mini" not in hashname:
                 self.log_remote(f"{hashname}:Logs", "Reconnected", now)
             return 0
 
