@@ -71,11 +71,6 @@ class RedisServer:
 
         now = int(time.time())
 
-        if node_state[:3] == "BBB":
-            if now - float(self.local_db.hget(hashname, "ping_time").decode()) > 1209600:
-                self.local_db.delete(hashname)
-            return 2
-
         if self.local_db.hdel(hashname, "heartbeat"):
             self.local_db.hset(hashname, mapping={"state_string": "Connected", "ping_time": now})
             if (logs and logs[0].decode() != "Reconnected") and "BBB-SIMAR-Mini" not in hashname:
