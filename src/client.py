@@ -174,7 +174,9 @@ class RedisClient:
                 else:
                     cycles_since_heavy_operation += 1
 
-                self.remote_db.hset(self.hashname, {"heartbeat": 1, "disk_usage": percent_disk_usage})
+                self.remote_db.hmset(
+                    self.hashname, {"heartbeat": 1, "disk_usage": "{:.2f}%".format(percent_disk_usage * 100)}
+                )
 
                 # Formats remote hash name as "BBB:IP_ADDRESS"
                 if (
