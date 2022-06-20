@@ -9,6 +9,7 @@ import socket
 from logging.handlers import RotatingFileHandler
 from typing import Callable
 import redis
+import shutil
 
 from consts import CONFIG_PATH, LOG_PATH_BBB, Command, SERVER_LIST
 
@@ -151,15 +152,29 @@ class RedisClient:
 
     def ping_remote(self):
         """Thread that updates remote database every 10s, if pinging is enabled"""
+        cycles_since_heavy_operation = 0
+        disk_usage = shutil.disk_usage("/")
+        percent_disk_usage = disk_usage.used / disk_usage.total
+
         while True:
             try:
                 new_ip_type, new_ip, new_nameservers = self.get_network_specs()
                 new_hostname = socket.gethostname()
 
-                self.remote_db.hset(self.hashname, "heartbeat", 1)
-
                 if not self.remote_db.hexists(self.hashname, "ip_address"):
                     self.remote_db.hmset(self.hashname, self.local_db.hgetall("device"))
+
+                if cycles_since_heavy_operation > 16:
+                    disk_usage = shutil.disk_usage("/")
+                    percent_disk_usage = disk_usage.used / disk_usage.total
+
+                    if percent_disk_usage > 90:
+                        self.log_remote("Disk usage is at {}%".format(percent_disk_usage), self.logger.warning)
+                    cycles_since_heavy_operation = 0
+                else:
+                    cycles_since_heavy_operation += 1
+
+                self.remote_db.hset(self.hashname, {"heartbeat": 1, "disk_usage": percent_disk_usage})
 
                 # Formats remote hash name as "BBB:IP_ADDRESS"
                 if (
