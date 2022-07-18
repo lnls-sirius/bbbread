@@ -232,7 +232,7 @@ class RedisClient:
                     self.remote_db.hmset(self.hashname, info)
                 time.sleep(10)
             except Exception as e:
-                self.log_remote(f"Pinging thread found an exception: {e}", self.logger.error)
+                self.logger.error(f"Pinging thread found an exception: {e}")
                 time.sleep(10)
                 self.find_active()
 
@@ -261,7 +261,7 @@ class RedisClient:
                 self.logger.error("Failed to convert first part of the command to integer")
                 continue
             except Exception as e:
-                self.log_remote(f"Listening thread found an exception: {e}", self.logger.error)
+                self.logger.error(f"Listening thread found an exception: {e}")
                 time.sleep(3)
                 continue
 
