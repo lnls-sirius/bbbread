@@ -65,7 +65,10 @@ class RedisServer:
             self.local_db.hset(hashname, "state_string", "Connected")
             return 0
 
-        if "BBB" in node_state:
+        if "Moved" in node_state:
+            return 2
+            
+        if node_state[:3] == "BBB":
             self.local_db.hset(hashname, "state_string", f"Moved - {node_state}")
             return 2
 
