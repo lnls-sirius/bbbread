@@ -65,6 +65,10 @@ class RedisServer:
             self.local_db.hset(hashname, "state_string", "Connected")
             return 0
 
+        if "BBB" in node_state:
+            self.local_db.hset(hashname, "state_string", f"Moved - {node_state}")
+            return 2
+
         logs = [
             x[1] for x in sorted(self.local_db.hgetall(hashname + ":Logs").items(), key=lambda x: x[0], reverse=True)
         ]
