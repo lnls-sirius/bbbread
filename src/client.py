@@ -77,6 +77,7 @@ class RedisClient:
                 "ip_type": self.bbb_ip_type,
                 "ip_address": self.bbb_ip,
                 "nameservers": self.bbb_nameservers,
+                "type": self.bbb.node.type.code,
             },
         )
 
