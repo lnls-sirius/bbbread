@@ -32,7 +32,7 @@ class RedisServer:
         self.logger.debug("Starting up BBBread Server")
 
         connected = False
-        for server in SERVER_LIST[:3]:
+        for server in SERVER_LIST:
             self.local_db = redis.StrictRedis(host=server, port=6379, socket_timeout=3)
             try:
                 self.local_db.ping()

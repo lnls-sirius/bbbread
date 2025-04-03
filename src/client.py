@@ -77,6 +77,7 @@ class RedisClient:
                 "ip_type": self.bbb_ip_type,
                 "ip_address": self.bbb_ip,
                 "nameservers": self.bbb_nameservers,
+                "type": self.bbb.node.type.code,
             },
         )
 
@@ -234,7 +235,7 @@ class RedisClient:
             except Exception as e:
                 self.logger.error(f"Pinging thread found an exception: {e}")
                 time.sleep(10)
-                self.find_active()
+                self.remote_db = self.find_active()
 
     def listen(self):
         """Thread to process server's commands"""

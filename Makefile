@@ -13,11 +13,11 @@ install:
 	# Services
 	cp --preserve=mode ${BREAD_SRC_SERVICE_FILE} ${SERVICE_FILE_DEST}
 
-	python-sirius -m pip install -r requirements.txt
+#	python-sirius -m pip install -r requirements.txt
 
 	systemctl daemon-reload
 
-	systemctl start ${BREAD_SERVICE_NAME}
+	systemctl restart ${BREAD_SERVICE_NAME}
 	systemctl enable ${BREAD_SERVICE_NAME}
 
 uninstall:
