@@ -2,7 +2,7 @@ PREFIX ?= /usr/local
 
 BREAD_SERVICE_NAME = bbbread
 BREAD_SRC_SERVICE_FILE = ${BREAD_SERVICE_NAME}.service
-
+BREAD_DEPENDENCIES = systemd-networkd systemd-networkd-wait-online
 SERVICE_FILE_DEST = /etc/systemd/system
 
 .PHONY: all install uninstall dependencies clean docker
@@ -16,6 +16,10 @@ install:
 #	python-sirius -m pip install -r requirements.txt
 
 	systemctl daemon-reload
+
+	# enable and start dependencies
+	systemctl enable ${BREAD_DEPENDENCIES}
+	systemctl start ${BREAD_DEPENDENCIES}
 
 	systemctl restart ${BREAD_SERVICE_NAME}
 	systemctl enable ${BREAD_SERVICE_NAME}
